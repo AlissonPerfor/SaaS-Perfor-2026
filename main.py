@@ -26,30 +26,27 @@ st.set_page_config(
 
 hide_st_style = """
             <style>
-            /* 1. Esconde o lixo mas deixa o Header vivo para a seta funcionar */
+            /* 1. Esconde Menu e Footer padrão */
             #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
+            footer {visibility: hidden !important;}
+            
+            /* 2. Esconde o Botão de Deploy e o selo 'Hosted with Streamlit' */
             .stAppDeployButton {display: none !important;}
             div[data-testid="stStatusWidget"] {display: none !important;}
             
-            /* 2. Força a seta (sidebar button) a ficar visível e com cor contrastante */
-            button[kind="header"] {
-                visibility: visible !important;
-                color: #00C853 !important; /* Cor verde Perfor na seta */
-            }
-
-            /* 3. Garante que o fundo do header não atrapalhe */
+            /* 3. O 'Xeque-mate' no selo vermelho do canto inferior */
+            [data-testid="stConnectionStatus"] {display: none !important;}
+            [data-testid="stDecoration"] {display: none !important;}
+            
+            /* 4. Garante que o Header fique invisível mas a seta continue clicável */
             header[data-testid="stHeader"] {
                 background-color: rgba(0,0,0,0) !important;
-                visibility: visible !important;
+                border: none !important;
             }
-
-            /* 4. Remove a linha colorida do topo */
-            div[data-testid="stDecoration"] {display: none !important;}
             
-            /* 5. Ajuste de respiro do topo */
-            .block-container {
-                padding-top: 1rem !important;
+            /* 5. Remove qualquer margem extra que o Streamlit tente colocar no rodapé */
+            .stApp {
+                margin-bottom: -2rem !important;
             }
             </style>
             """
