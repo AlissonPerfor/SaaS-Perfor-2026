@@ -53,6 +53,20 @@ def logout():
     st.rerun()
 
 
+@st.dialog("Recuperar Senha")
+def render_forgot_password_dialog():
+    st.caption("Insira seu e-mail corporativo abaixo para receber um link de redefinição de senha.")
+    reset_email = st.text_input("E-mail corporativo", key="reset_email_input_dialog")
+    if st.button("Enviar link de redefinição", type="primary", use_container_width=True):
+        if reset_email:
+            if reset_password(reset_email):
+                st.success("Link enviado! Verifique sua caixa de entrada e spam.")
+            else:
+                st.error("Erro ao enviar. Verifique se o e-mail está correto e cadastrado.")
+        else:
+            st.warning("Por favor, preencha o e-mail acima.")
+
+
 # ── Tela de Login ─────────────────────────────────────────────────────────────
 
 def show_login_page() -> None:
@@ -159,28 +173,49 @@ def show_login_page() -> None:
             email = st.text_input("E-mail corporativo", placeholder="analista@perforr.com")
             senha = st.text_input("Senha", type="password", placeholder="••••••••")
 
+            # Link 'Esqueci minha senha' (botão do form disfarçado via CSS)
+            st.markdown("""
+                <style>
+                div[data-testid="stElementContainer"]:has(#forgot-pwd-anchor) + div[data-testid="stElementContainer"] button {
+                    background: transparent !important;
+                    border: none !important;
+                    color: #9CA3AF !important;
+                    padding: 0 !important;
+                    min-height: 0 !important;
+                    height: auto !important;
+                    font-size: 13px !important;
+                    box-shadow: none !important;
+                    margin-top: -10px !important;
+                    margin-bottom: 25px !important;
+                    justify-content: flex-start !important;
+                }
+                div[data-testid="stElementContainer"]:has(#forgot-pwd-anchor) + div[data-testid="stElementContainer"] button:hover {
+                    color: #00C853 !important;
+                    text-decoration: underline !important;
+                    background: transparent !important;
+                }
+                div[data-testid="stElementContainer"]:has(#forgot-pwd-anchor) + div[data-testid="stElementContainer"] button:focus {
+                    color: #00C853 !important;
+                    background: transparent !important;
+                }
+                </style>
+                <div id="forgot-pwd-anchor"></div>
+            """, unsafe_allow_html=True)
+            forgot_clicked = st.form_submit_button("Esqueci minha senha")
+
             # Botão centralizado via colunas Python (100% confiável)
             _, btn_col, _ = st.columns([1, 2, 1])
             with btn_col:
-                if st.form_submit_button("Acessar Perfor.IA", use_container_width=True):
-                    user_data = verify_user(email, senha)
-                    if user_data:
-                        st.session_state.logged_in = True
-                        st.session_state.user_data = user_data
-                        st.rerun()
-                    else:
-                        st.error("Credenciais inválidas. Verifique seu e-mail e senha.")
+                login_clicked = st.form_submit_button("Acessar Perfor.IA", use_container_width=True)
 
-        # Esqueci minha senha (fora do st.form)
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.expander("Esqueci minha senha"):
-            st.caption("Insira seu e-mail corporativo abaixo para receber um link de redefinição de senha.")
-            reset_email = st.text_input("E-mail para recuperação", key="reset_email_input")
-            if st.button("Enviar link de redefinição", type="primary", use_container_width=True):
-                if reset_email:
-                    if reset_password(reset_email):
-                        st.success("Link enviado! Verifique sua caixa de entrada e spam.")
-                    else:
-                        st.error("Erro ao enviar. Verifique se o e-mail está correto e cadastrado.")
+            if login_clicked:
+                user_data = verify_user(email, senha)
+                if user_data:
+                    st.session_state.logged_in = True
+                    st.session_state.user_data = user_data
+                    st.rerun()
                 else:
-                    st.warning("Por favor, preencha o e-mail acima.")
+                    st.error("Credenciais inválidas. Verifique seu e-mail e senha.")
+
+        if forgot_clicked:
+            render_forgot_password_dialog()
