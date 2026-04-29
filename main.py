@@ -105,58 +105,64 @@ if True:
         """Renderiza o botão de perfil/logout fixo no canto superior direito."""
         user_data = st.session_state.get("user_data") or {}
         nome = user_data.get("nome", "Usuário")
+        inicial = nome[0].upper() if nome else "U"
         
         st.markdown(f"""
             <style>
-            /* Hack para mirar exatamente o botão de Sair através do anchor id */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button {{
+            /* Hack para mirar exatamente o container do popover através do anchor id */
+            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] {{
                 position: fixed !important;
                 top: 15px !important;
                 right: 20px !important;
                 z-index: 99999 !important;
-                background: rgba(18, 18, 18, 0.7) !important;
-                backdrop-filter: blur(10px) !important;
-                border: 1px solid rgba(0, 200, 83, 0.4) !important;
-                border-radius: 50px !important;
-                color: #FAFAFA !important;
-                padding: 4px 20px !important;
+            }}
+            /* O botão principal do popover (a bolinha com a inicial) */
+            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button {{
+                width: 42px !important;
+                height: 42px !important;
+                border-radius: 50% !important;
+                background-color: #00C853 !important;
+                color: #0E0E0E !important;
+                border: 2px solid rgba(0, 200, 83, 0.4) !important;
+                padding: 0 !important;
                 font-family: 'Lexend', sans-serif !important;
-                font-weight: 500 !important;
-                transition: all 0.3s ease !important;
+                font-weight: 700 !important;
+                font-size: 16px !important;
+                transition: all 0.2s ease !important;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }}
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button:hover {{
-                border-color: #ff4444 !important;
-                background: rgba(255, 68, 68, 0.15) !important;
-                color: #ff4444 !important;
-                box-shadow: 0 0 15px rgba(255, 68, 68, 0.3) !important;
+            /* Remove a setinha e o padding padrão do botão do popover do Streamlit */
+            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button svg {{
+                display: none !important;
             }}
-            /* Troca o texto no hover usando um truque visual (esconde o original e mostra 'Sair') */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button p {{
-                transition: opacity 0.2s;
+            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button p {{
+                margin: 0 !important;
+                padding: 0 !important;
             }}
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button:hover p {{
-                opacity: 0;
+            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button:hover {{
+                transform: scale(1.05);
+                box-shadow: 0 0 15px rgba(0, 200, 83, 0.6) !important;
+                border-color: #00E676 !important;
+                color: #0E0E0E !important;
+                background-color: #00C853 !important;
             }}
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button::after {{
-                content: "Sair";
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                transform: translate(-50%, -50%);
-                color: #ff4444;
-                font-weight: 600;
-                opacity: 0;
-                transition: opacity 0.2s;
-            }}
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] button:hover::after {{
-                opacity: 1;
+            /* Estilo interno do popover quando aberto */
+            div[data-testid="stPopoverBody"] {{
+                background-color: #121212 !important;
+                border: 1px solid rgba(0, 200, 83, 0.4) !important;
+                border-radius: 12px !important;
+                padding: 16px !important;
             }}
             </style>
             <div id="profile-anchor"></div>
         """, unsafe_allow_html=True)
         
-        st.button(f"👤 {nome}", on_click=auth.logout, key="btn_header_logout")
+        with st.popover(inicial):
+            st.markdown(f"**👤 {nome}**")
+            st.button("Sair da conta", type="primary", on_click=auth.logout, use_container_width=True)
 
     # Chama o header customizado
     render_header()
