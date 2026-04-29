@@ -28,8 +28,8 @@ def verify_user(email_input: str, senha_input: str):
         if user:
             nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or email_input.split("@")[0]
             
-            # Reutiliza a função centralizada de perfil (cargo já vem em lowercase)
-            perfil = get_user_profile(user.id)
+            # Reutiliza a função centralizada de perfil — buscando por email
+            perfil = get_user_profile(user.email)
             
             return {
                 "id": user.id,
@@ -52,14 +52,15 @@ def reset_password(email_input: str) -> bool:
         return False
 
 
-def get_user_profile(user_id: str) -> dict:
+def get_user_profile(email: str) -> dict:
     """
-    Busca cargo e squad de um usuário na tabela 'usuarios' pelo user_id.
+    Busca cargo e squad de um usuário na tabela 'usuarios' pelo email.
+    (A tabela usa IDs numéricos, não UUIDs do Supabase Auth.)
     Retorna um dict com 'cargo' e 'squad', com defaults seguros.
     """
     defaults = {"cargo": "analista", "squad": None}
     try:
-        resp = supabase.table("usuarios").select("cargo, squad").eq("id", user_id).execute()
+        resp = supabase.table("usuarios").select("cargo, squad").eq("email", email).execute()
         if resp.data:
             perfil = resp.data[0]
             # Normaliza cargo para minúsculas para comparações seguras
@@ -69,7 +70,7 @@ def get_user_profile(user_id: str) -> dict:
                 "squad": perfil.get("squad")
             }
     except Exception as e:
-        print(f"[RBAC] Erro ao buscar perfil do usuário {user_id}: {e}")
+        print(f"[RBAC] Erro ao buscar perfil do usuário '{email}': {e}")
     return defaults
 
 
