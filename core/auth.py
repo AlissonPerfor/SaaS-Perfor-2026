@@ -32,8 +32,8 @@ def check_login() -> bool:
                 user = session.user
                 nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or user.email.split("@")[0]
 
-                # Busca centralizada de perfil (cargo já vem em lowercase)
-                perfil = get_user_profile(user.id)
+                # Busca centralizada de perfil por email (tabela usa IDs numéricos, não UUIDs)
+                perfil = get_user_profile(user.email)
 
                 st.session_state.logged_in = True
                 st.session_state.user_data = {
