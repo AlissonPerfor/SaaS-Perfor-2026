@@ -36,7 +36,23 @@ hide_st_style = """
                 box-shadow: none !important;
             }
 
-            /* 3. Esconde TODA a Toolbar no Canto Superior Direito (inclui Deploy, Perfil e Fork do GitHub) */
+            /* 3. FORÇA A SETA DE ABRIR A SIDEBAR A APARECER */
+            /* Quando a sidebar fecha, o Streamlit usa o collapsedControl no lugar do botão padrão */
+            [data-testid="collapsedControl"],
+            [data-testid="stSidebarCollapsedControl"] {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                z-index: 999999 !important;
+            }
+            
+            [data-testid="collapsedControl"] svg,
+            [data-testid="stSidebarCollapsedControl"] svg {
+                fill: #00C853 !important; /* Força a cor Verde Perfor na setinha SVG */
+                color: #00C853 !important;
+            }
+
+            /* 4. Esconde TODA a Toolbar no Canto Superior Direito (inclui Deploy, Perfil e Fork do GitHub) */
             [data-testid="stToolbar"] {
                 display: none !important;
                 visibility: hidden !important;
