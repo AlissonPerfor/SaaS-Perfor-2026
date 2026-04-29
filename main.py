@@ -112,7 +112,7 @@ if True:
             st.markdown(f"""
                 <style>
                 /* 1. Mira o container vertical exato e joga para o topo direito */
-                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) {{
+                div[data-testid="stVerticalBlock"]:not(:has(div[data-testid="stVerticalBlock"])):has(#profile-anchor-hook) {{
                     position: fixed !important;
                     top: 15px !important;
                     right: 25px !important;
@@ -125,7 +125,7 @@ if True:
                 }}
                 
                 /* 2. Formata a bolinha (O botão do popover) */
-                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button {{
+                div[data-testid="stVerticalBlock"]:not(:has(div[data-testid="stVerticalBlock"])):has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button {{
                     width: 45px !important;
                     height: 45px !important;
                     border-radius: 50% !important;
@@ -142,7 +142,7 @@ if True:
                 }}
                 
                 /* 3. A inicial dentro do botão */
-                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button p {{
+                div[data-testid="stVerticalBlock"]:not(:has(div[data-testid="stVerticalBlock"])):has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button p {{
                     color: #00C853 !important;
                     font-weight: 700 !important;
                     font-family: 'Lexend', sans-serif !important;
@@ -152,12 +152,12 @@ if True:
                 }}
                 
                 /* 4. Esconde o SVG (seta do popover) */
-                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button svg {{
+                div[data-testid="stVerticalBlock"]:not(:has(div[data-testid="stVerticalBlock"])):has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button svg {{
                     display: none !important;
                 }}
                 
                 /* 5. Hover da bolinha */
-                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button:hover {{
+                div[data-testid="stVerticalBlock"]:not(:has(div[data-testid="stVerticalBlock"])):has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button:hover {{
                     transform: scale(1.05);
                     box-shadow: 0 0 20px rgba(0, 200, 83, 0.5) !important;
                     background: rgba(18, 18, 18, 0.9) !important;
