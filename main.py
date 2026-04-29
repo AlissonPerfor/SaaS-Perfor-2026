@@ -21,8 +21,23 @@ st.set_page_config(
     page_title="Perfor SaaS",
     page_icon="assets/icone_p.png",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
+
+# ── White Label: esconde marcas nativas do Streamlit ────────────────────────
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stAppDeployButton {display: none;}
+            .block-container {
+                padding-top: 0rem !important;
+                padding-bottom: 0rem !important;
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # ── Estilos Globais ───────────────────────────────────────────────────────────
 apply_global_styles()
