@@ -26,54 +26,34 @@ st.set_page_config(
 
 hide_st_style = """
             <style>
-            /* 1. Esconde Menu e Rodapé */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden !important;}
+            /* 1. Esconde Menu e Rodapé padrão */
+            #MainMenu {display: none !important;}
+            footer {display: none !important;}
 
-            /* 2. Mantém o Header transparente para ancorar a seta */
+            /* 2. Deixa o header transparente, mas NÃO esconde nem quebra a estrutura dele */
             header[data-testid="stHeader"] {
                 background-color: transparent !important;
-                border: none !important;
                 box-shadow: none !important;
-                visibility: visible !important;
             }
 
-            /* 3. Garante a visibilidade da seta da Sidebar (Expandida ou Retraída) */
-            [data-testid="collapsedControl"],
-            [data-testid="stSidebarCollapseButton"],
-            button[kind="header"] {
-                visibility: visible !important;
-                display: inline-flex !important;
-                color: #00C853 !important;
-                z-index: 9999 !important;
-            }
-
-            /* ── BALAS DE PRATA CONTRA STREAMLIT CLOUD BADGES ── */
-            /* Esconde a Toolbar (onde ficam o botão Deploy e Perfil) */
-            [data-testid="stToolbar"] {
+            /* 3. Esconde APENAS o Botão de Deploy da Toolbar (para não quebrar a Seta que pode estar perto) */
+            .stAppDeployButton {
                 display: none !important;
-                visibility: hidden !important;
             }
-            
-            /* Esconde o Status Widget e Conexão ("Hosted with Streamlit") */
+
+            /* 4. BALAS DE PRATA CONTRA STREAMLIT CLOUD BADGES */
+            /* Esconde o Status Widget, "Hosted with Streamlit" e linha decorativa */
             [data-testid="stStatusWidget"],
-            [data-testid="stConnectionStatus"] {
-                display: none !important;
-            }
-            
-            /* Esconde a linha decorativa do topo */
+            [data-testid="stConnectionStatus"],
             [data-testid="stDecoration"] {
                 display: none !important;
             }
 
-            /* Esconde explicitamente os badges injetados do Cloud */
+            /* Esconde explicitamente os avatares e selos flutuantes injetados pelo Cloud */
             .viewerBadge_container__17m9G,
             .viewerBadge_link__1S137,
             div[class^="viewerBadge_"] {
                 display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
             }
             
             /* Remove a margem extra do rodapé para o app ocupar tudo */
