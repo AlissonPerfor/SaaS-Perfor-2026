@@ -107,96 +107,108 @@ if True:
         nome = user_data.get("nome", "Usuário")
         inicial = nome[0].upper() if nome else "U"
         
-        st.markdown(f"""
-            <style>
-            /* Hack para mirar exatamente o container do popover através do anchor id */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] {{
-                position: fixed !important;
-                top: 20px !important;
-                right: 20px !important;
-                z-index: 99999 !important;
-            }}
-            /* O botão principal do popover (a bolinha flutuante glassmorphism) */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button {{
-                width: 45px !important;
-                height: 45px !important;
-                border-radius: 50% !important;
-                background: rgba(18, 18, 18, 0.6) !important;
-                backdrop-filter: blur(10px) !important;
-                border: 1px solid rgba(0, 200, 83, 0.5) !important;
-                padding: 0 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                transition: all 0.3s ease !important;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-            }}
-            /* O texto inicial dentro do botão (cor verde neon) */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button p {{
-                color: #00C853 !important;
-                font-weight: 700 !important;
-                font-family: 'Lexend', sans-serif !important;
-                font-size: 18px !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }}
-            /* Remove a setinha do Streamlit */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button svg {{
-                display: none !important;
-            }}
-            /* Hover do avatar */
-            div[data-testid="stElementContainer"]:has(#profile-anchor) + div[data-testid="stElementContainer"] > div > button:hover {{
-                transform: scale(1.05);
-                box-shadow: 0 0 20px rgba(0, 200, 83, 0.5) !important;
-                background: rgba(18, 18, 18, 0.9) !important;
-            }}
-            
-            /* Estilo GLOBAL interno do popover menu (portal do React) */
-            div[data-testid="stPopoverBody"] {{
-                background: rgba(20, 20, 20, 0.85) !important;
-                backdrop-filter: blur(15px) saturate(180%) !important;
-                border: 1px solid rgba(0, 200, 83, 0.4) !important;
-                border-radius: 16px !important;
-                padding: 15px !important;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
-                min-width: 200px !important;
-            }}
-            
-            /* Estilo para o botão 'Sair da conta' parecer um link discreto e elegante */
-            div[data-testid="stElementContainer"]:has(#logout-anchor) + div[data-testid="stElementContainer"] button {{
-                background: transparent !important;
-                border: none !important;
-                color: #ff4444 !important;
-                padding: 8px 10px !important;
-                font-size: 14px !important;
-                font-weight: 500 !important;
-                font-family: 'Lexend', sans-serif !important;
-                width: 100% !important;
-                display: flex !important;
-                justify-content: flex-start !important;
-                box-shadow: none !important;
-                transition: all 0.2s ease !important;
-            }}
-            div[data-testid="stElementContainer"]:has(#logout-anchor) + div[data-testid="stElementContainer"] button:hover {{
-                background: rgba(255, 68, 68, 0.1) !important;
-                border-radius: 8px !important;
-            }}
-            </style>
-            <div id="profile-anchor"></div>
-        """, unsafe_allow_html=True)
-        
-        with st.popover(inicial):
+        # Envolvemos tudo em um container para mirar e mover TODO o bloco para o topo direito
+        with st.container():
             st.markdown(f"""
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #00C853; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Lexend', sans-serif;">
-                        {inicial}
-                    </div>
-                    <span style="color: #fff; font-weight: 500; font-family: 'Lexend', sans-serif; font-size: 15px;">{nome}</span>
-                </div>
-                <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 10px 0;">
-                <div id="logout-anchor"></div>
+                <style>
+                /* 1. Mira o container vertical exato e joga para o topo direito */
+                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) {{
+                    position: fixed !important;
+                    top: 15px !important;
+                    right: 25px !important;
+                    z-index: 999999 !important;
+                    width: 45px !important;
+                    height: 45px !important;
+                    gap: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }}
+                
+                /* 2. Formata a bolinha (O botão do popover) */
+                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button {{
+                    width: 45px !important;
+                    height: 45px !important;
+                    border-radius: 50% !important;
+                    background: rgba(18, 18, 18, 0.6) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 2px solid #00C853 !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    transition: all 0.3s ease !important;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+                }}
+                
+                /* 3. A inicial dentro do botão */
+                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button p {{
+                    color: #00C853 !important;
+                    font-weight: 700 !important;
+                    font-family: 'Lexend', sans-serif !important;
+                    font-size: 18px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }}
+                
+                /* 4. Esconde o SVG (seta do popover) */
+                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button svg {{
+                    display: none !important;
+                }}
+                
+                /* 5. Hover da bolinha */
+                div[data-testid="stVerticalBlock"]:has(#profile-anchor-hook) div[data-testid="stPopover"] > div > button:hover {{
+                    transform: scale(1.05);
+                    box-shadow: 0 0 20px rgba(0, 200, 83, 0.5) !important;
+                    background: rgba(18, 18, 18, 0.9) !important;
+                }}
+
+                /* 6. Estilo GLOBAL do menu Popover quando aberto */
+                div[data-testid="stPopoverBody"] {{
+                    background: rgba(20, 20, 20, 0.85) !important;
+                    backdrop-filter: blur(10px) saturate(180%) !important;
+                    border: 1px solid rgba(0, 200, 83, 0.4) !important;
+                    border-radius: 16px !important;
+                    padding: 15px !important;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+                    min-width: 200px !important;
+                }}
+                
+                /* 7. Botão Sair transparente dentro do popover */
+                div[data-testid="stElementContainer"]:has(#logout-anchor) + div[data-testid="stElementContainer"] button {{
+                    background: transparent !important;
+                    border: none !important;
+                    color: #ff4444 !important;
+                    padding: 8px 10px !important;
+                    font-size: 14px !important;
+                    font-weight: 500 !important;
+                    font-family: 'Lexend', sans-serif !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    justify-content: flex-start !important;
+                    box-shadow: none !important;
+                    transition: all 0.2s ease !important;
+                }}
+                div[data-testid="stElementContainer"]:has(#logout-anchor) + div[data-testid="stElementContainer"] button:hover {{
+                    background: rgba(255, 68, 68, 0.1) !important;
+                    border-radius: 8px !important;
+                }}
+                </style>
+                <div id="profile-anchor-hook"></div>
             """, unsafe_allow_html=True)
-            st.button("Sair da conta", on_click=auth.logout, key="btn_logout_popover")
+            
+            with st.popover(inicial):
+                st.markdown(f"""
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: #00C853; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Lexend', sans-serif;">
+                            {inicial}
+                        </div>
+                        <span style="color: #fff; font-weight: 500; font-family: 'Lexend', sans-serif; font-size: 15px;">{nome}</span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 10px 0;">
+                    <div id="logout-anchor"></div>
+                """, unsafe_allow_html=True)
+                st.button("Sair da conta", on_click=auth.logout, key="btn_logout_popover")
 
     # Chama o header customizado
     render_header()
