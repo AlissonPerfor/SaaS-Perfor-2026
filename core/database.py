@@ -103,12 +103,19 @@ def get_projects(user_id: str, cargo: str, squad: str | None, email: str = "") -
                 return []
 
         else:
-            # Analistas: filtra pelo e-mail (ilike = case-insensitive no Postgres)
+            # Analistas: filtra pelo e-mail
             email_norm = str(email).strip().lower() if email else ""
             if not email_norm:
                 print(f"[RBAC] AVISO: Analista (user_id={user_id}) sem e-mail definido. Acesso negado.")
                 return []
-            query = query.ilike("analista_email", email_norm)
+            
+            # Busca todos os projetos e filtra em Python para garantir 100% de precisão (ignora maiúsculas e espaços extras no banco)
+            response = query.execute()
+            todos_projetos = response.data or []
+            return [
+                p for p in todos_projetos 
+                if p.get("analista_email") and str(p["analista_email"]).strip().lower() == email_norm
+            ]
 
         response = query.execute()
         return response.data or []
