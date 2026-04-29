@@ -38,13 +38,23 @@ hide_st_style = """
             [data-testid="stConnectionStatus"] {display: none !important;}
             [data-testid="stDecoration"] {display: none !important;}
             
-            /* 4. Garante que o Header fique invisível mas a seta continue clicável */
+            /* 4. Garante que o Header tenha fundo transparente MAS continue visível para ancorar a seta */
             header[data-testid="stHeader"] {
                 background-color: rgba(0,0,0,0) !important;
                 border: none !important;
+                visibility: visible !important;
             }
             
-            /* 5. Remove qualquer margem extra que o Streamlit tente colocar no rodapé */
+            /* 5. Força a visibilidade da seta da sidebar quando fechada */
+            button[kind="header"] {
+                visibility: visible !important;
+                color: #00C853 !important; /* Cor verde Perfor na seta */
+            }
+            [data-testid="collapsedControl"] {
+                visibility: visible !important;
+            }
+            
+            /* 6. Remove qualquer margem extra que o Streamlit tente colocar no rodapé */
             .stApp {
                 margin-bottom: -2rem !important;
             }
