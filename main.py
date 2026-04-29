@@ -5,7 +5,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 
 from core.styles import apply_global_styles
-from core.auth import check_login, show_login_page, logout
+import core.auth as auth
 
 
 def get_image_as_base64(file_path: str) -> str:
@@ -95,8 +95,8 @@ apply_global_styles()
 
 # ── Roteamento Principal ──────────────────────────────────────────────────────
 # Guard: mostra login e interrompe se não autenticado
-if not check_login():
-    show_login_page()
+if not auth.check_login():
+    auth.show_login_page()
     st.stop()
 
 # ── Usuário autenticado — painel principal ────────────────────────────────────
@@ -156,7 +156,7 @@ if True:
             <div id="profile-anchor"></div>
         """, unsafe_allow_html=True)
         
-        st.button(f"👤 {nome}", on_click=logout, key="btn_header_logout")
+        st.button(f"👤 {nome}", on_click=auth.logout, key="btn_header_logout")
 
     # Chama o header customizado
     render_header()
