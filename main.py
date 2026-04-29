@@ -27,20 +27,10 @@ st.set_page_config(
 hide_st_style = """
             <style>
             /* 1. Esconde Menu e Rodapé */
-            #MainMenu {visibility: hidden !important;}
-            footer {display: none !important;}
-            
-            /* 2. Força a Seta a aparecer de qualquer jeito na Sidebar Fechada e Aberta */
-            [data-testid="collapsedControl"],
-            [data-testid="stSidebarCollapseButton"] {
-                visibility: visible !important;
-                display: flex !important;
-                color: #00C853 !important; /* Cor Verde Perfor */
-                z-index: 999999 !important;
-                background-color: transparent !important;
-            }
-            
-            /* Garante que o header que segura a seta fique transparente */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden !important;}
+
+            /* 2. Mantém o Header transparente para ancorar a seta */
             header[data-testid="stHeader"] {
                 background-color: transparent !important;
                 border: none !important;
@@ -48,26 +38,48 @@ hide_st_style = """
                 visibility: visible !important;
             }
 
-            /* 3. BALA DE PRATA: Oculta as badges do Streamlit Cloud (Selo Vermelho e Avatar) */
-            .stAppDeployButton,
-            [data-testid="stToolbar"],
+            /* 3. Garante a visibilidade da seta da Sidebar (Expandida ou Retraída) */
+            [data-testid="collapsedControl"],
+            [data-testid="stSidebarCollapseButton"],
+            button[kind="header"] {
+                visibility: visible !important;
+                display: inline-flex !important;
+                color: #00C853 !important;
+                z-index: 9999 !important;
+            }
+
+            /* ── BALAS DE PRATA CONTRA STREAMLIT CLOUD BADGES ── */
+            /* Esconde a Toolbar (onde ficam o botão Deploy e Perfil) */
+            [data-testid="stToolbar"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* Esconde o Status Widget e Conexão ("Hosted with Streamlit") */
             [data-testid="stStatusWidget"],
-            [data-testid="stConnectionStatus"],
-            div[class*="viewerBadge"] {
+            [data-testid="stConnectionStatus"] {
+                display: none !important;
+            }
+            
+            /* Esconde a linha decorativa do topo */
+            [data-testid="stDecoration"] {
+                display: none !important;
+            }
+
+            /* Esconde explicitamente os badges injetados do Cloud */
+            .viewerBadge_container__17m9G,
+            .viewerBadge_link__1S137,
+            div[class^="viewerBadge_"] {
                 display: none !important;
                 visibility: hidden !important;
                 opacity: 0 !important;
                 pointer-events: none !important;
             }
-
-            /* BALA DE PRATA 2: Oculta qualquer DIV flutuante no canto inferior direito! */
-            div[style*="position: fixed"][style*="bottom:"][style*="right:"] {
-                display: none !important;
-                visibility: hidden !important;
-            }
             
-            /* 4. Remove a linha decorativa do topo */
-            [data-testid="stDecoration"] {display: none !important;}
+            /* Remove a margem extra do rodapé para o app ocupar tudo */
+            .stApp {
+                margin-bottom: -2rem !important;
+            }
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
