@@ -36,12 +36,13 @@ hide_st_style = """
                 box-shadow: none !important;
             }
 
-            /* 3. Esconde APENAS o Botão de Deploy da Toolbar (para não quebrar a Seta que pode estar perto) */
-            .stAppDeployButton {
+            /* 3. Esconde TODA a Toolbar no Canto Superior Direito (inclui Deploy, Perfil e Fork do GitHub) */
+            [data-testid="stToolbar"] {
                 display: none !important;
+                visibility: hidden !important;
             }
 
-            /* 4. BALAS DE PRATA CONTRA STREAMLIT CLOUD BADGES */
+            /* 4. BALAS DE PRATA CONTRA STREAMLIT CLOUD BADGES (Canto Inferior Direito) */
             /* Esconde o Status Widget, "Hosted with Streamlit" e linha decorativa */
             [data-testid="stStatusWidget"],
             [data-testid="stConnectionStatus"],
@@ -50,10 +51,15 @@ hide_st_style = """
             }
 
             /* Esconde explicitamente os avatares e selos flutuantes injetados pelo Cloud */
+            div[class*="viewerBadge"],
+            div[class^="viewerBadge"],
             .viewerBadge_container__17m9G,
             .viewerBadge_link__1S137,
-            div[class^="viewerBadge_"] {
+            a[href*="streamlit.io/cloud"],
+            a[href*="github.com/streamlit"] {
                 display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
             }
             
             /* Remove a margem extra do rodapé para o app ocupar tudo */
