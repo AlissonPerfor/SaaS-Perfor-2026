@@ -283,24 +283,49 @@ if True:
 
     # ── Roteamento entre módulos ──────────────────────────────────────────────
     if selected == "Visão Geral":
-        # Card de status
+        user_data   = st.session_state.get("user_data") or {}
+        user_id     = user_data.get("id", "")
+        cargo       = user_data.get("cargo", "analista")   # já em lowercase
+        squad       = user_data.get("squad")
+
+        # Badge de cargo/acesso no topo
+        cargo_labels = {
+            "ceo":      ("👑 CEO · Acesso Total",       "#FFD700", "#1a1500"),
+            "head":     (f"🎯 Head · Squad {squad or '—'}", "#00C853", "#001a0a"),
+            "analista": ("📊 Analista · Meus Projetos", "#3B82F6", "#00102a"),
+        }
+        badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
         st.markdown(
-            """
+            f"""
             <div class="glass-card highlight">
-                <h3>✦ Estrutura Modular Ativa</h3>
-                <p>
-                    Todos os módulos foram carregados com sucesso.
-                    Navegue pelos itens do menu lateral para acessar
-                    <strong style="color:#e5e7eb;">Brain</strong>,
-                    <strong style="color:#e5e7eb;">Criativos</strong> e
-                    <strong style="color:#e5e7eb;">Financeiro</strong>.
-                </p>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h3 style="margin:0 0 4px 0;">✦ Estrutura Modular Ativa</h3>
+                        <p style="margin:0; color:#6b7280; font-size:0.85rem;">
+                            Navegue pelos itens do menu lateral para acessar
+                            <strong style="color:#e5e7eb;">Brain</strong>,
+                            <strong style="color:#e5e7eb;">Criativos</strong> e
+                            <strong style="color:#e5e7eb;">Financeiro</strong>.
+                        </p>
+                    </div>
+                    <span style="
+                        background:{badge_bg};
+                        color:{badge_color};
+                        border:1px solid {badge_color};
+                        border-radius:20px;
+                        padding:4px 14px;
+                        font-size:0.78rem;
+                        font-weight:600;
+                        letter-spacing:0.5px;
+                        white-space:nowrap;
+                    ">{badge_text}</span>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # KPIs placeholder
+        # KPIs placeholder (aguardando dados reais futuros)
         col1, col2, col3, col4 = st.columns(4)
         kpis = [
             ("Receita MRR", "R$ —", "Aguardando dados"),
@@ -328,6 +353,38 @@ if True:
                     """,
                     unsafe_allow_html=True,
                 )
+
+        # ── Projetos Filtrados por RBAC ───────────────────────────────────────
+        from core.database import get_projects
+
+        st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<p style='color:#6b7280; font-size:0.75rem; letter-spacing:1px; margin-bottom:8px;'>PROJETOS VISÍVEIS</p>",
+            unsafe_allow_html=True
+        )
+
+        with st.spinner("Carregando projetos..."):
+            projetos = get_projects(user_id=user_id, cargo=cargo, squad=squad)
+
+        if projetos:
+            import pandas as pd
+            df = pd.DataFrame(projetos)
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.markdown(
+                """
+                <div class="glass-card" style="text-align:center; padding:32px;">
+                    <p style="color:#6b7280; font-size:0.9rem; margin:0;">
+                        Nenhum projeto encontrado para o seu perfil de acesso.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     elif selected == "Brain":
         st.markdown(

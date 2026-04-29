@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from core.database import verify_user, reset_password, supabase
+from core.database import verify_user, reset_password, get_user_profile, supabase
 
 
 # ── Utilitário ────────────────────────────────────────────────────────────────
@@ -31,11 +31,17 @@ def check_login() -> bool:
             if session:
                 user = session.user
                 nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or user.email.split("@")[0]
+
+                # Busca centralizada de perfil (cargo já vem em lowercase)
+                perfil = get_user_profile(user.id)
+
                 st.session_state.logged_in = True
                 st.session_state.user_data = {
                     "id": user.id,
                     "email": user.email,
-                    "nome": nome.title()
+                    "nome": nome.title(),
+                    "cargo": perfil["cargo"],   # ex: 'ceo', 'head', 'analista'
+                    "squad": perfil["squad"]    # ex: 'Cold Hunters', 'Rise Gold', None
                 }
         except Exception:
             pass
