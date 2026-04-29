@@ -26,38 +26,32 @@ st.set_page_config(
 
 hide_st_style = """
             <style>
-            /* 1. Esconde Menu e Footer padrão */
-            #MainMenu {visibility: hidden;}
+            /* 1. Esconde o Menu de 3 pontos, Perfil e Botão Deploy (Toolbar) */
+            [data-testid="stToolbar"] {visibility: hidden; display: none !important;}
+            
+            /* 2. Esconde o Botão Vermelho 'Hosted with Streamlit' e Status */
+            [data-testid="stStatusWidget"] {display: none !important;}
+            .viewerBadge_container__17m9G {display: none !important;}
+            div[class^="viewerBadge"] {display: none !important;}
+            
+            /* 3. Esconde o rodapé padrão */
             footer {visibility: hidden !important;}
             
-            /* 2. Esconde o Botão de Deploy e o selo 'Hosted with Streamlit' */
-            .stAppDeployButton {display: none !important;}
-            div[data-testid="stStatusWidget"] {display: none !important;}
-            
-            /* 3. O 'Xeque-mate' no selo vermelho do canto inferior */
-            [data-testid="stConnectionStatus"] {display: none !important;}
-            [data-testid="stDecoration"] {display: none !important;}
-            
-            /* 4. Garante que o Header tenha fundo transparente MAS continue visível para ancorar a seta */
+            /* 4. MANTÉM A SETA: Deixa o Header transparente e visível */
+            /* A seta da sidebar vive aqui, então não podemos dar display:none */
             header[data-testid="stHeader"] {
                 background-color: rgba(0,0,0,0) !important;
-                border: none !important;
                 visibility: visible !important;
             }
             
-            /* 5. Força a visibilidade da seta da sidebar quando fechada */
-            button[kind="header"] {
+            /* 5. Força a seta a ser visível mesmo se o header tentar esconder */
+            button[data-testid="stSidebarCollapseButton"] {
                 visibility: visible !important;
-                color: #00C853 !important; /* Cor verde Perfor na seta */
+                display: block !important;
             }
-            [data-testid="collapsedControl"] {
-                visibility: visible !important;
-            }
-            
-            /* 6. Remove qualquer margem extra que o Streamlit tente colocar no rodapé */
-            .stApp {
-                margin-bottom: -2rem !important;
-            }
+
+            /* 6. Remove a linha decorativa do topo */
+            [data-testid="stDecoration"] {display: none !important;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
