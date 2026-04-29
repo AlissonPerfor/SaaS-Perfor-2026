@@ -74,12 +74,12 @@ def get_user_profile(email: str) -> dict:
     return defaults
 
 
-def get_projects(user_id: str, cargo: str, squad: str | None) -> list:
+def get_projects(user_id: str, cargo: str, squad: str | None, email: str = "") -> list:
     """
     Busca projetos na tabela 'projetos' aplicando a hierarquia de acesso:
     - CEO:      Acesso total — sem filtros.
     - Head:     Projetos onde squad do projeto == squad do Head (ex: 'Cold Hunters', 'Rise Gold').
-    - Analista: Apenas projetos onde analista_id == user_id.
+    - Analista: Apenas projetos onde analista_email == email (case-insensitive via ilike).
 
     A comparação de cargo usa .lower() para evitar erros de case (analista/Analista/ANALISTA).
     """
@@ -103,12 +103,16 @@ def get_projects(user_id: str, cargo: str, squad: str | None) -> list:
                 return []
 
         else:
-            # Analistas e qualquer cargo desconhecido: filtro pelo próprio user_id
-            query = query.eq("analista_id", user_id)
+            # Analistas: filtra pelo e-mail (ilike = case-insensitive no Postgres)
+            email_norm = str(email).strip().lower() if email else ""
+            if not email_norm:
+                print(f"[RBAC] AVISO: Analista (user_id={user_id}) sem e-mail definido. Acesso negado.")
+                return []
+            query = query.ilike("analista_email", email_norm)
 
         response = query.execute()
         return response.data or []
 
     except Exception as e:
-        print(f"[RBAC] Erro ao buscar projetos (cargo={cargo}, squad={squad}): {e}")
+        print(f"[RBAC] Erro ao buscar projetos (cargo={cargo}, squad={squad}, email={email}): {e}")
         return []
