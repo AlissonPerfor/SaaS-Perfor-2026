@@ -21,29 +21,35 @@ st.set_page_config(
     page_title="Perfor SaaS",
     page_icon="assets/icone_p.png",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
-# ── White Label: esconde marcas nativas do Streamlit ────────────────────────
 hide_st_style = """
             <style>
-            #MainMenu {visibility: hidden !important;}
-            footer {visibility: hidden !important;}
-            header {visibility: hidden !important;}
-
-            /* Remove o botão vermelho 'Hosted with Streamlit' e widgets de status */
+            /* 1. Esconde o lixo mas deixa o Header vivo para a seta funcionar */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
             .stAppDeployButton {display: none !important;}
             div[data-testid="stStatusWidget"] {display: none !important;}
-            #stDecoration {display: none !important;}
+            
+            /* 2. Força a seta (sidebar button) a ficar visível e com cor contrastante */
+            button[kind="header"] {
+                visibility: visible !important;
+                color: #00C853 !important; /* Cor verde Perfor na seta */
+            }
 
-            /* Esconde especificamente o container do rodapé do Streamlit Cloud */
-            div[class^="stAppViewFooter"] {display: none !important;}
+            /* 3. Garante que o fundo do header não atrapalhe */
+            header[data-testid="stHeader"] {
+                background-color: rgba(0,0,0,0) !important;
+                visibility: visible !important;
+            }
 
-            /* Ajuste fino para o conteúdo ocupar a tela toda sem espaços */
+            /* 4. Remove a linha colorida do topo */
+            div[data-testid="stDecoration"] {display: none !important;}
+            
+            /* 5. Ajuste de respiro do topo */
             .block-container {
-                padding-top: 0rem !important;
-                padding-bottom: 0rem !important;
-                margin-top: -30px !important;
+                padding-top: 1rem !important;
             }
             </style>
             """
