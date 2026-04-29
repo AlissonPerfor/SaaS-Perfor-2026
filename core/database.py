@@ -26,12 +26,17 @@ def verify_user(email_input: str, senha_input: str):
         response = supabase.auth.sign_in_with_password({"email": email_input, "password": senha_input})
         user = response.user
         if user:
-            # Tenta pegar o nome dos metadados, se não existir usa o email
             nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or email_input.split("@")[0]
+            
+            # Reutiliza a função centralizada de perfil (cargo já vem em lowercase)
+            perfil = get_user_profile(user.id)
+            
             return {
                 "id": user.id,
                 "email": user.email,
-                "nome": nome.title()
+                "nome": nome.title(),
+                "cargo": perfil["cargo"],   # ex: 'ceo', 'head', 'analista'
+                "squad": perfil["squad"]    # ex: 'Cold Hunters', 'Rise Gold', None
             }
         return None
     except Exception as e:
@@ -45,3 +50,64 @@ def reset_password(email_input: str) -> bool:
         return True
     except Exception as e:
         return False
+
+
+def get_user_profile(user_id: str) -> dict:
+    """
+    Busca cargo e squad de um usuário na tabela 'usuarios' pelo user_id.
+    Retorna um dict com 'cargo' e 'squad', com defaults seguros.
+    """
+    defaults = {"cargo": "analista", "squad": None}
+    try:
+        resp = supabase.table("usuarios").select("cargo, squad").eq("id", user_id).execute()
+        if resp.data:
+            perfil = resp.data[0]
+            # Normaliza cargo para minúsculas para comparações seguras
+            cargo_raw = perfil.get("cargo") or "analista"
+            return {
+                "cargo": cargo_raw.strip().lower(),
+                "squad": perfil.get("squad")
+            }
+    except Exception as e:
+        print(f"[RBAC] Erro ao buscar perfil do usuário {user_id}: {e}")
+    return defaults
+
+
+def get_projects(user_id: str, cargo: str, squad: str | None) -> list:
+    """
+    Busca projetos na tabela 'projetos' aplicando a hierarquia de acesso:
+    - CEO:      Acesso total — sem filtros.
+    - Head:     Projetos onde squad do projeto == squad do Head (ex: 'Cold Hunters', 'Rise Gold').
+    - Analista: Apenas projetos onde analista_id == user_id.
+
+    A comparação de cargo usa .lower() para evitar erros de case (analista/Analista/ANALISTA).
+    """
+    try:
+        query = supabase.table("projetos").select("*")
+
+        # Normaliza cargo para lowercase uma única vez
+        cargo_norm = str(cargo).strip().lower() if cargo else "analista"
+
+        if cargo_norm == "ceo":
+            # Acesso total — não aplica nenhum filtro
+            pass
+
+        elif cargo_norm == "head":
+            if squad:
+                # Filtra pelo nome exato do squad (case-sensitive no banco, ex: 'Cold Hunters')
+                query = query.eq("squad", squad)
+            else:
+                # Head sem squad definido: bloqueio de segurança
+                print(f"[RBAC] AVISO: Head (user_id={user_id}) sem squad atribuído. Acesso negado.")
+                return []
+
+        else:
+            # Analistas e qualquer cargo desconhecido: filtro pelo próprio user_id
+            query = query.eq("analista_id", user_id)
+
+        response = query.execute()
+        return response.data or []
+
+    except Exception as e:
+        print(f"[RBAC] Erro ao buscar projetos (cargo={cargo}, squad={squad}): {e}")
+        return []
