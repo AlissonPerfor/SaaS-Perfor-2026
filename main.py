@@ -52,8 +52,12 @@ hide_st_style = """
                 color: #00C853 !important;
             }
 
-            /* 4. Esconde TODA a Toolbar no Canto Superior Direito (inclui Deploy, Perfil e Fork do GitHub) */
-            [data-testid="stToolbar"] {
+            /* 4. Esconde APENAS OS ÍCONES da Toolbar no Canto Superior Direito (Deploy, Fork) */
+            /* Se escondermos a stToolbar inteira, a seta some junto em algumas versões! */
+            [data-testid="stActionMenu"],
+            [data-testid="stToolbarActions"],
+            .stAppDeployButton,
+            header[data-testid="stHeader"] a {
                 display: none !important;
                 visibility: hidden !important;
             }
