@@ -23,7 +23,12 @@ def apply_global_styles():
             /* ── Elementos padrão do Streamlit ── */
             #MainMenu  { visibility: hidden; }
             footer     { visibility: hidden; }
-            header     { background-color: transparent !important; }
+            header     { visibility: hidden; }
+
+            /* ── Remove espaço em branco que sobra após esconder o header ── */
+            .block-container {
+                padding-top: 2rem !important;
+            }
 
             /* ── Tipografia global segura (sem span para não matar ícones) ── */
             .stApp, p, div, label, button,
