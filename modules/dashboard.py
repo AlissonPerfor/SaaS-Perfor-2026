@@ -5,6 +5,7 @@ Exibe seletor de projeto/mês e as métricas GPS reais via Google Sheets.
 """
 
 import calendar
+import textwrap
 from datetime import date
 from typing import Optional
 
@@ -123,7 +124,7 @@ def _render_cargo_badge(cargo: str, squad: Optional[str]) -> None:
     }
     badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
 
-    st.markdown(f"""
+    st.markdown(textwrap.dedent(f"""
     <div class="glass-card highlight" style="margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
@@ -145,7 +146,7 @@ def _render_cargo_badge(cargo: str, squad: Optional[str]) -> None:
             ">{badge_text}</span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 
 def _render_selectors(projetos: list) -> tuple[Optional[dict], str]:
@@ -218,7 +219,7 @@ def _render_alavancas(dados: dict) -> None:
             delta_str   = f"{seta} {abs(pct):.1f}% vs Projetado".replace(".", ",")
 
         with col:
-            st.markdown(f"""
+            st.markdown(textwrap.dedent(f"""
             <div class="glass-card" style="
                 text-align:center;
                 padding:28px 20px;
@@ -260,7 +261,7 @@ def _render_alavancas(dados: dict) -> None:
                     <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{proj_str}</span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
 
 
 def _render_pacing(dados: dict, mes_sel: str) -> None:
@@ -317,7 +318,7 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown(f"""
+    st.markdown(textwrap.dedent(f"""
     <div class="glass-card" style="
         background:linear-gradient(135deg, {status_bg} 0%, rgba(12,12,12,0.60) 100%);
         border-color:{status_bdr};
@@ -397,7 +398,7 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 
 def _render_resumo_financeiro(dados: dict) -> None:
@@ -431,7 +432,7 @@ def _render_resumo_financeiro(dados: dict) -> None:
             ating_color = "#00C853" if ating >= 0.8 else "#EF4444"
 
         with col:
-            st.markdown(f"""
+            st.markdown(textwrap.dedent(f"""
             <div class="glass-card" style="padding:20px 22px;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
                     <span style="font-size:1.4rem;">{icon}</span>
@@ -457,13 +458,13 @@ def _render_resumo_financeiro(dados: dict) -> None:
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
 
 
 # ── Telas de estado vazio / erro ──────────────────────────────────────────────
 
 def _render_sem_projetos() -> None:
-    st.markdown("""
+    st.markdown(textwrap.dedent("""
     <div class="glass-card" style="text-align:center; padding:48px 32px;">
         <div style="font-size:3rem; margin-bottom:16px;">📭</div>
         <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum projeto encontrado</h3>
@@ -472,11 +473,11 @@ def _render_sem_projetos() -> None:
             Fale com o administrador do sistema.
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 
 def _render_config_pendente(nome_projeto: str, motivo: str = "") -> None:
-    st.markdown(f"""
+    st.markdown(textwrap.dedent(f"""
     <div class="glass-card" style="
         border-color:rgba(251,191,36,0.4);
         background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%);
@@ -508,4 +509,4 @@ def _render_config_pendente(nome_projeto: str, motivo: str = "") -> None:
             e confirme que o Service Account tem acesso à planilha.
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
