@@ -27,13 +27,23 @@ st.set_page_config(
 # ── White Label: esconde marcas nativas do Streamlit ────────────────────────
 hide_st_style = """
             <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            .stAppDeployButton {display: none;}
+            #MainMenu {visibility: hidden !important;}
+            footer {visibility: hidden !important;}
+            header {visibility: hidden !important;}
+
+            /* Remove o botão vermelho 'Hosted with Streamlit' e widgets de status */
+            .stAppDeployButton {display: none !important;}
+            div[data-testid="stStatusWidget"] {display: none !important;}
+            #stDecoration {display: none !important;}
+
+            /* Esconde especificamente o container do rodapé do Streamlit Cloud */
+            div[class^="stAppViewFooter"] {display: none !important;}
+
+            /* Ajuste fino para o conteúdo ocupar a tela toda sem espaços */
             .block-container {
                 padding-top: 0rem !important;
                 padding-bottom: 0rem !important;
+                margin-top: -30px !important;
             }
             </style>
             """
