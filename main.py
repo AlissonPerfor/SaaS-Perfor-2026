@@ -26,31 +26,47 @@ st.set_page_config(
 
 hide_st_style = """
             <style>
-            /* 1. Esconde o Menu de 3 pontos, Perfil e Botão Deploy (Toolbar) */
-            [data-testid="stToolbar"] {visibility: hidden; display: none !important;}
+            /* 1. Esconde Menu e Rodapé */
+            #MainMenu {visibility: hidden !important;}
+            footer {display: none !important;}
             
-            /* 2. Esconde o Botão Vermelho 'Hosted with Streamlit' e Status */
-            [data-testid="stStatusWidget"] {display: none !important;}
-            .viewerBadge_container__17m9G {display: none !important;}
-            div[class^="viewerBadge"] {display: none !important;}
-            
-            /* 3. Esconde o rodapé padrão */
-            footer {visibility: hidden !important;}
-            
-            /* 4. MANTÉM A SETA: Deixa o Header transparente e visível */
-            /* A seta da sidebar vive aqui, então não podemos dar display:none */
-            header[data-testid="stHeader"] {
-                background-color: rgba(0,0,0,0) !important;
+            /* 2. Força a Seta a aparecer de qualquer jeito na Sidebar Fechada e Aberta */
+            [data-testid="collapsedControl"],
+            [data-testid="stSidebarCollapseButton"] {
                 visibility: visible !important;
+                display: flex !important;
+                color: #00C853 !important; /* Cor Verde Perfor */
+                z-index: 999999 !important;
+                background-color: transparent !important;
             }
             
-            /* 5. Força a seta a ser visível mesmo se o header tentar esconder */
-            button[data-testid="stSidebarCollapseButton"] {
+            /* Garante que o header que segura a seta fique transparente */
+            header[data-testid="stHeader"] {
+                background-color: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
                 visibility: visible !important;
-                display: block !important;
             }
 
-            /* 6. Remove a linha decorativa do topo */
+            /* 3. BALA DE PRATA: Oculta as badges do Streamlit Cloud (Selo Vermelho e Avatar) */
+            .stAppDeployButton,
+            [data-testid="stToolbar"],
+            [data-testid="stStatusWidget"],
+            [data-testid="stConnectionStatus"],
+            div[class*="viewerBadge"] {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+
+            /* BALA DE PRATA 2: Oculta qualquer DIV flutuante no canto inferior direito! */
+            div[style*="position: fixed"][style*="bottom:"][style*="right:"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* 4. Remove a linha decorativa do topo */
             [data-testid="stDecoration"] {display: none !important;}
             </style>
             """

@@ -23,7 +23,7 @@ def apply_global_styles():
             /* ── Elementos padrão do Streamlit ── */
             #MainMenu  { visibility: hidden; }
             footer     { visibility: hidden; }
-            header     { visibility: hidden; }
+            header     { background-color: transparent !important; border: none !important; box-shadow: none !important; }
 
             /* ── Remove espaço em branco que sobra após esconder o header ── */
             .block-container {
