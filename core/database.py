@@ -15,22 +15,33 @@ def init_connection():
 supabase = init_connection()
 
 
-# ── Verificação de Usuário ────────────────────────────────────────────────────
+# ── Autenticação Nativa (Supabase Auth) ───────────────────────────────────────
 
-def verify_user(email_input: str, senha_input: str) -> bool:
+def verify_user(email_input: str, senha_input: str):
     """
-    Busca na tabela 'usuarios' um registro com email e senha correspondentes.
-    Retorna True se encontrar, False caso contrário.
+    Realiza o login via Supabase Auth nativo.
+    Retorna os dados do usuário (dict) em caso de sucesso, ou None se falhar.
     """
     try:
-        result = (
-            supabase.table("usuarios")
-            .select("*")
-            .eq("email", email_input)
-            .eq("senha", senha_input)
-            .execute()
-        )
-        return len(result.data) > 0
+        response = supabase.auth.sign_in_with_password({"email": email_input, "password": senha_input})
+        user = response.user
+        if user:
+            # Tenta pegar o nome dos metadados, se não existir usa o email
+            nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or email_input.split("@")[0]
+            return {
+                "id": user.id,
+                "email": user.email,
+                "nome": nome.title()
+            }
+        return None
     except Exception as e:
-        st.error(f"Erro técnico de conexão: {e}")
+        # Em caso de erro (senha errada, não existe, etc), o Supabase lança uma exceção.
+        return None
+
+def reset_password(email_input: str) -> bool:
+    """Envia e-mail de recuperação de senha via Supabase Auth."""
+    try:
+        supabase.auth.reset_password_for_email(email_input)
+        return True
+    except Exception as e:
         return False

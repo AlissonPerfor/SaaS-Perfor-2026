@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from core.database import verify_user
+from core.database import verify_user, reset_password, supabase
 
 
 # ── Utilitário ────────────────────────────────────────────────────────────────
@@ -22,7 +22,35 @@ def get_image_as_base64(file_path: str) -> str:
 def check_login() -> bool:
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
+        st.session_state.user_data = None
+    
+    # Tenta recuperar sessão ativa do Supabase (útil para mitigar logout no F5 caso o client preserve)
+    if not st.session_state.logged_in:
+        try:
+            session = supabase.auth.get_session()
+            if session:
+                user = session.user
+                nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or user.email.split("@")[0]
+                st.session_state.logged_in = True
+                st.session_state.user_data = {
+                    "id": user.id,
+                    "email": user.email,
+                    "nome": nome.title()
+                }
+        except Exception:
+            pass
+
     return st.session_state.logged_in
+
+def logout():
+    """Limpa sessão e desloga."""
+    try:
+        supabase.auth.sign_out()
+    except Exception:
+        pass
+    st.session_state.logged_in = False
+    st.session_state.user_data = None
+    st.rerun()
 
 
 # ── Tela de Login ─────────────────────────────────────────────────────────────
@@ -135,8 +163,24 @@ def show_login_page() -> None:
             _, btn_col, _ = st.columns([1, 2, 1])
             with btn_col:
                 if st.form_submit_button("Acessar Perfor.IA", use_container_width=True):
-                    if verify_user(email, senha):
+                    user_data = verify_user(email, senha)
+                    if user_data:
                         st.session_state.logged_in = True
+                        st.session_state.user_data = user_data
                         st.rerun()
                     else:
                         st.error("Credenciais inválidas. Verifique seu e-mail e senha.")
+
+        # Esqueci minha senha (fora do st.form)
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander("Esqueci minha senha"):
+            st.caption("Insira seu e-mail corporativo abaixo para receber um link de redefinição de senha.")
+            reset_email = st.text_input("E-mail para recuperação", key="reset_email_input")
+            if st.button("Enviar link de redefinição", type="primary", use_container_width=True):
+                if reset_email:
+                    if reset_password(reset_email):
+                        st.success("Link enviado! Verifique sua caixa de entrada e spam.")
+                    else:
+                        st.error("Erro ao enviar. Verifique se o e-mail está correto e cadastrado.")
+                else:
+                    st.warning("Por favor, preencha o e-mail acima.")
