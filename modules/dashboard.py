@@ -124,29 +124,18 @@ def _render_cargo_badge(cargo: str, squad: Optional[str]) -> None:
     }
     badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
 
-    st.markdown(textwrap.dedent(f"""
-    <div class="glass-card highlight" style="margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div>
-                <h3 style="margin:0 0 4px 0; color:#00C853;">✦ Performance GPS</h3>
-                <p style="margin:0; color:#6b7280; font-size:0.85rem;">
-                    Dados em tempo real via Google Sheets · Aba 🏆 GPS / 26
-                </p>
-            </div>
-            <span style="
-                background:{badge_bg};
-                color:{badge_color};
-                border:1px solid {badge_color};
-                border-radius:20px;
-                padding:4px 14px;
-                font-size:0.78rem;
-                font-weight:600;
-                letter-spacing:0.5px;
-                white-space:nowrap;
-            ">{badge_text}</span>
-        </div>
-    </div>
-    """), unsafe_allow_html=True)
+    html_badge = f"""
+<div class="glass-card highlight" style="margin-bottom:20px;">
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+<div>
+<h3 style="margin:0 0 4px 0; color:#00C853;">✦ Performance GPS</h3>
+<p style="margin:0; color:#6b7280; font-size:0.85rem;">Dados em tempo real via Google Sheets · Aba 🏆 GPS / 26</p>
+</div>
+<span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; border-radius:20px; padding:4px 14px; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; white-space:nowrap;">{badge_text}</span>
+</div>
+</div>
+"""
+    st.markdown(html_badge, unsafe_allow_html=True)
 
 
 def _render_selectors(projetos: list) -> tuple[Optional[dict], str]:
@@ -219,49 +208,20 @@ def _render_alavancas(dados: dict) -> None:
             delta_str   = f"{seta} {abs(pct):.1f}% vs Projetado".replace(".", ",")
 
         with col:
-            st.markdown(textwrap.dedent(f"""
-            <div class="glass-card" style="
-                text-align:center;
-                padding:28px 20px;
-                position:relative;
-                overflow:hidden;
-            ">
-                <!-- Glow decorativo -->
-                <div style="
-                    position:absolute; top:-30px; right:-30px;
-                    width:90px; height:90px;
-                    background:radial-gradient(circle, rgba(0,200,83,0.08) 0%, transparent 70%);
-                    border-radius:50%;
-                "></div>
-
-                <div style="font-size:2rem; margin-bottom:6px;">{alav['icon']}</div>
-                <p style="
-                    color:#6b7280; font-size:0.7rem;
-                    letter-spacing:1.5px; margin-bottom:12px;
-                    font-weight:600;
-                ">{alav['label'].upper()}</p>
-
-                <p style="
-                    font-size:2.2rem; font-weight:700;
-                    color:#FAFAFA; margin:0 0 6px 0;
-                    letter-spacing:-1px;
-                ">{val_str}</p>
-
-                <p style="color:{delta_color}; font-size:0.8rem; margin:0 0 8px 0; font-weight:500;">
-                    {delta_str if delta_str else "Sem projetado"}
-                </p>
-
-                <div style="
-                    background:rgba(255,255,255,0.04);
-                    border-radius:6px;
-                    padding:5px 10px;
-                    display:inline-block;
-                ">
-                    <span style="color:#4b5563; font-size:0.7rem;">Projetado: </span>
-                    <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{proj_str}</span>
-                </div>
-            </div>
-            """), unsafe_allow_html=True)
+            html_card = f"""
+<div class="glass-card" style="text-align:center; padding:28px 20px; position:relative; overflow:hidden;">
+<div style="position:absolute; top:-30px; right:-30px; width:90px; height:90px; background:radial-gradient(circle, rgba(0,200,83,0.08) 0%, transparent 70%); border-radius:50%;"></div>
+<div style="font-size:2rem; margin-bottom:6px;">{alav['icon']}</div>
+<p style="color:#6b7280; font-size:0.7rem; letter-spacing:1.5px; margin-bottom:12px; font-weight:600;">{alav['label'].upper()}</p>
+<p style="font-size:2.2rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-1px;">{val_str}</p>
+<p style="color:{delta_color}; font-size:0.8rem; margin:0 0 8px 0; font-weight:500;">{delta_str if delta_str else "Sem projetado"}</p>
+<div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:5px 10px; display:inline-block;">
+<span style="color:#4b5563; font-size:0.7rem;">Projetado: </span>
+<span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{proj_str}</span>
+</div>
+</div>
+"""
+            st.markdown(html_card, unsafe_allow_html=True)
 
 
 def _render_pacing(dados: dict, mes_sel: str) -> None:
@@ -318,87 +278,38 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown(textwrap.dedent(f"""
-    <div class="glass-card" style="
-        background:linear-gradient(135deg, {status_bg} 0%, rgba(12,12,12,0.60) 100%);
-        border-color:{status_bdr};
-        padding:24px 28px;
-    ">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
-            <!-- Coluna esquerda: status principal -->
-            <div>
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <span style="font-size:1.5rem;">{status_icon}</span>
-                    <span style="
-                        color:{status_color};
-                        font-size:1.1rem;
-                        font-weight:700;
-                        letter-spacing:0.3px;
-                    ">{status_text}</span>
-                </div>
-                <p style="color:#6b7280; font-size:0.82rem; margin:0;">
-                    Receita Realizado · <strong style="color:#FAFAFA;">{receita_str}</strong>
-                    &nbsp;/&nbsp;
-                    Projetado · <strong style="color:#9CA3AF;">{proj_str}</strong>
-                </p>
-            </div>
-
-            <!-- Coluna direita: % em destaque -->
-            <div style="text-align:right;">
-                <p style="color:#6b7280; font-size:0.72rem; letter-spacing:1px; margin:0 0 4px 0;">ATINGIMENTO</p>
-                <p style="font-size:2rem; font-weight:700; color:{status_color}; margin:0; letter-spacing:-1px;">
-                    {ating_pct}
-                </p>
-            </div>
-        </div>
-
-        <!-- Barra de Progresso Dupla -->
-        <div style="margin-bottom:12px;">
-            <!-- Label da barra -->
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                <span style="color:#6b7280; font-size:0.72rem; letter-spacing:1px;">MÊS DECORRIDO ({mes_sel})</span>
-                <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{pacing_pct}</span>
-            </div>
-
-            <!-- Track da barra (fundo) -->
-            <div style="
-                background:rgba(255,255,255,0.06);
-                border-radius:999px;
-                height:10px;
-                width:100%;
-                position:relative;
-                overflow:hidden;
-            ">
-                <!-- Barra de atingimento (Receita) -->
-                <div style="
-                    position:absolute; top:0; left:0;
-                    height:100%;
-                    width:{bar_ating_w:.1f}%;
-                    background:linear-gradient(90deg, {status_color}cc, {status_color});
-                    border-radius:999px;
-                    transition:width 0.6s ease;
-                "></div>
-
-                <!-- Marcador de pacing (linha branca) -->
-                <div style="
-                    position:absolute; top:-2px;
-                    left:calc({bar_pacing_w:.1f}% - 1px);
-                    height:14px;
-                    width:2px;
-                    background:#FAFAFA;
-                    border-radius:2px;
-                    opacity:0.6;
-                "></div>
-            </div>
-
-            <!-- Legenda da barra -->
-            <div style="display:flex; justify-content:space-between; margin-top:6px;">
-                <span style="color:{status_color}; font-size:0.68rem;">● Receita {ating_pct}</span>
-                <span style="color:#FAFAFA; font-size:0.68rem;">| Pacing {pacing_pct}</span>
-            </div>
-        </div>
-    </div>
-    """), unsafe_allow_html=True)
+    html_pacing = f"""
+<div class="glass-card" style="background:linear-gradient(135deg, {status_bg} 0%, rgba(12,12,12,0.60) 100%); border-color:{status_bdr}; padding:24px 28px;">
+<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+<div>
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+<span style="font-size:1.5rem;">{status_icon}</span>
+<span style="color:{status_color}; font-size:1.1rem; font-weight:700; letter-spacing:0.3px;">{status_text}</span>
+</div>
+<p style="color:#6b7280; font-size:0.82rem; margin:0;">Receita Realizado · <strong style="color:#FAFAFA;">{receita_str}</strong> &nbsp;/&nbsp; Projetado · <strong style="color:#9CA3AF;">{proj_str}</strong></p>
+</div>
+<div style="text-align:right;">
+<p style="color:#6b7280; font-size:0.72rem; letter-spacing:1px; margin:0 0 4px 0;">ATINGIMENTO</p>
+<p style="font-size:2rem; font-weight:700; color:{status_color}; margin:0; letter-spacing:-1px;">{ating_pct}</p>
+</div>
+</div>
+<div style="margin-bottom:12px;">
+<div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+<span style="color:#6b7280; font-size:0.72rem; letter-spacing:1px;">MÊS DECORRIDO ({mes_sel})</span>
+<span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{pacing_pct}</span>
+</div>
+<div style="background:rgba(255,255,255,0.06); border-radius:999px; height:10px; width:100%; position:relative; overflow:hidden;">
+<div style="position:absolute; top:0; left:0; height:100%; width:{bar_ating_w:.1f}%; background:linear-gradient(90deg, {status_color}cc, {status_color}); border-radius:999px; transition:width 0.6s ease;"></div>
+<div style="position:absolute; top:-2px; left:calc({bar_pacing_w:.1f}% - 1px); height:14px; width:2px; background:#FAFAFA; border-radius:2px; opacity:0.6;"></div>
+</div>
+<div style="display:flex; justify-content:space-between; margin-top:6px;">
+<span style="color:{status_color}; font-size:0.68rem;">● Receita {ating_pct}</span>
+<span style="color:#FAFAFA; font-size:0.68rem;">| Pacing {pacing_pct}</span>
+</div>
+</div>
+</div>
+"""
+    st.markdown(html_pacing, unsafe_allow_html=True)
 
 
 def _render_resumo_financeiro(dados: dict) -> None:
@@ -432,81 +343,50 @@ def _render_resumo_financeiro(dados: dict) -> None:
             ating_color = "#00C853" if ating >= 0.8 else "#EF4444"
 
         with col:
-            st.markdown(textwrap.dedent(f"""
-            <div class="glass-card" style="padding:20px 22px;">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-                    <span style="font-size:1.4rem;">{icon}</span>
-                    <p style="color:#6b7280; font-size:0.72rem; letter-spacing:1.5px; margin:0; font-weight:600;">
-                        {metrica.upper()}
-                    </p>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <div>
-                        <p style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 4px 0; letter-spacing:-0.5px;">
-                            {val_str}
-                        </p>
-                        <p style="color:#6b7280; font-size:0.78rem; margin:0;">
-                            Projetado: <span style="color:#9CA3AF;">{proj_str}</span>
-                        </p>
-                    </div>
-                    <div style="text-align:right;">
-                        <p style="color:#4b5563; font-size:0.68rem; margin:0 0 2px 0; letter-spacing:1px;">ATING.</p>
-                        <p style="font-size:1.3rem; font-weight:700; color:{ating_color}; margin:0;">
-                            {ating_str}
-                        </p>
-                    </div>
-                </div>
-            </div>
-            """), unsafe_allow_html=True)
+            html_resumo = f"""
+<div class="glass-card" style="padding:20px 22px;">
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+<span style="font-size:1.4rem;">{icon}</span>
+<p style="color:#6b7280; font-size:0.72rem; letter-spacing:1.5px; margin:0; font-weight:600;">{metrica.upper()}</p>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:flex-end;">
+<div>
+<p style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 4px 0; letter-spacing:-0.5px;">{val_str}</p>
+<p style="color:#6b7280; font-size:0.78rem; margin:0;">Projetado: <span style="color:#9CA3AF;">{proj_str}</span></p>
+</div>
+<div style="text-align:right;">
+<p style="color:#4b5563; font-size:0.68rem; margin:0 0 2px 0; letter-spacing:1px;">ATING.</p>
+<p style="font-size:1.3rem; font-weight:700; color:{ating_color}; margin:0;">{ating_str}</p>
+</div>
+</div>
+</div>
+"""
+            st.markdown(html_resumo, unsafe_allow_html=True)
 
 
 # ── Telas de estado vazio / erro ──────────────────────────────────────────────
 
 def _render_sem_projetos() -> None:
-    st.markdown(textwrap.dedent("""
-    <div class="glass-card" style="text-align:center; padding:48px 32px;">
-        <div style="font-size:3rem; margin-bottom:16px;">📭</div>
-        <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum projeto encontrado</h3>
-        <p style="color:#6b7280; font-size:0.88rem; margin:0;">
-            Seu perfil de acesso não possui projetos vinculados.<br>
-            Fale com o administrador do sistema.
-        </p>
-    </div>
-    """), unsafe_allow_html=True)
+    html_vazio = """
+<div class="glass-card" style="text-align:center; padding:48px 32px;">
+<div style="font-size:3rem; margin-bottom:16px;">📭</div>
+<h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum projeto encontrado</h3>
+<p style="color:#6b7280; font-size:0.88rem; margin:0;">Seu perfil de acesso não possui projetos vinculados.<br>Fale com o administrador do sistema.</p>
+</div>
+"""
+    st.markdown(html_vazio, unsafe_allow_html=True)
 
 
 def _render_config_pendente(nome_projeto: str, motivo: str = "") -> None:
-    st.markdown(textwrap.dedent(f"""
-    <div class="glass-card" style="
-        border-color:rgba(251,191,36,0.4);
-        background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%);
-        padding:32px 28px;
-        text-align:center;
-    ">
-        <div style="font-size:2.5rem; margin-bottom:14px;">⚙️</div>
-        <h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">
-            Configuração da Planilha Pendente
-        </h3>
-        <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">
-            Não foi possível carregar os dados do GPS para
-            <strong style="color:#FAFAFA;">{nome_projeto}</strong>.
-        </p>
-        <div style="
-            background:rgba(0,0,0,0.3);
-            border:1px solid rgba(251,191,36,0.2);
-            border-radius:8px;
-            padding:10px 16px;
-            display:inline-block;
-            max-width:600px;
-        ">
-            <p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace; letter-spacing:0.3px;">
-                {motivo}
-            </p>
-        </div>
-        <p style="color:#4b5563; font-size:0.75rem; margin:16px 0 0 0;">
-            Verifique o <code style="color:#FCD34D;">google_sheet_id</code> no Supabase
-            e confirme que o Service Account tem acesso à planilha.
-        </p>
-    </div>
-    """), unsafe_allow_html=True)
+    html_erro = f"""
+<div class="glass-card" style="border-color:rgba(251,191,36,0.4); background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
+<div style="font-size:2.5rem; margin-bottom:14px;">⚙️</div>
+<h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">Configuração da Planilha Pendente</h3>
+<p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os dados do GPS para <strong style="color:#FAFAFA;">{nome_projeto}</strong>.</p>
+<div style="background:rgba(0,0,0,0.3); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:10px 16px; display:inline-block; max-width:600px;">
+<p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace; letter-spacing:0.3px;">{motivo}</p>
+</div>
+<p style="color:#4b5563; font-size:0.75rem; margin:16px 0 0 0;">Verifique o <code style="color:#FCD34D;">google_sheet_id</code> no Supabase e confirme que o Service Account tem acesso à planilha.</p>
+</div>
+"""
+    st.markdown(html_erro, unsafe_allow_html=True)
