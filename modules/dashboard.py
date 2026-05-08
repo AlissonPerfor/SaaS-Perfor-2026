@@ -1,7 +1,11 @@
 """
 modules/dashboard.py
 Módulo 'Visão Geral' do dashboard Perfor.IA.
-Exibe seletor de projeto/mês e as métricas GPS reais via Google Sheets.
+Exibe métricas GPS reais via Google Sheets.
+
+Multi-tenancy:
+  - CEO (projeto_ativo=None): Visão Agregada de todos os projetos.
+  - Head/Analista: Visão Individual do projeto selecionado na sidebar.
 """
 
 import calendar
@@ -11,7 +15,12 @@ from typing import Optional
 
 import streamlit as st
 
-from core.database import get_projects
+from core.context import (
+    get_active_project,
+    get_all_projects,
+    is_ceo,
+    render_cargo_badge,
+)
 from core.sheets import (
     MESES_ABREV,
     METRICAS,
@@ -57,106 +66,45 @@ ALAVANCAS = [
 def render_visao_geral() -> None:
     """
     Renderiza toda a tela 'Visão Geral':
-    - Badge de cargo
-    - Seletor de projeto (RBAC) + Seletor de mês
-    - 3 cards de Alavancas (Sessão, Ticket, Conversão)
-    - Indicador de Pacing de Faturamento (verde/vermelho)
-    - Fallback de 'Configuração Pendente' se sheet não disponível
+    - Badge de cargo (centralizado via core.context)
+    - Seletor de mês
+    - CEO sem projeto selecionado → Visão Agregada
+    - Demais → Visão Individual do projeto ativo
     """
-    user_data = st.session_state.get("user_data") or {}
-    user_id   = user_data.get("id", "")
-    cargo     = user_data.get("cargo", "analista")
-    squad     = user_data.get("squad")
-    email     = user_data.get("email", "")
+    render_cargo_badge(
+        "✦ Performance GPS",
+        "Dados em tempo real via Google Sheets · Aba 🏆 GPS / 26",
+    )
 
-    # ── Badge de cargo ────────────────────────────────────────────────────────
-    _render_cargo_badge(cargo, squad)
-
-    # ── Carrega projetos visíveis ─────────────────────────────────────────────
-    with st.spinner("Carregando projetos..."):
-        projetos = get_projects(user_id=user_id, cargo=cargo, squad=squad, email=email)
-
+    projetos = get_all_projects()
     if not projetos:
         _render_sem_projetos()
         return
 
-    # ── Seletor de Projeto + Mês (linha única) ────────────────────────────────
-    projeto_sel, mes_sel = _render_selectors(projetos)
+    # ── Seletor de Mês ────────────────────────────────────────────────────────
+    mes_sel = _render_month_selector()
 
-    if projeto_sel is None:
-        return
+    # ── Roteamento por contexto ───────────────────────────────────────────────
+    projeto = get_active_project()
 
-    sheet_id: Optional[str] = projeto_sel.get("google_sheet_id")
-
-    # ── Sem google_sheet_id → aviso de configuração ───────────────────────────
-    if not sheet_id:
-        _render_config_pendente(
-            projeto_sel.get("nome", "Projeto"),
-            motivo="google_sheet_id não cadastrado para este projeto."
-        )
-        return
-
-    # ── Busca dados do GPS ────────────────────────────────────────────────────
-    with st.spinner(f"Conectando à planilha de {projeto_sel.get('nome', '')}..."):
-        dados = get_gps_data(sheet_id=sheet_id, mes_abrev=mes_sel)
-
-    # ── Erro na leitura → aviso de configuração ───────────────────────────────
-    if dados.get("erro"):
-        _render_config_pendente(
-            projeto_sel.get("nome", "Projeto"),
-            motivo=dados["erro"]
-        )
-        return
-
-    # ── Renderiza o Dashboard completo ────────────────────────────────────────
-    _render_alavancas(dados)
-    _render_pacing(dados, mes_sel)
-    _render_resumo_financeiro(dados)
+    if projeto is None and is_ceo():
+        _render_visao_agregada(projetos, mes_sel)
+    elif projeto is not None:
+        _render_visao_individual(projeto, mes_sel)
+    else:
+        _render_sem_projetos()
 
 
-# ── Seções internas ───────────────────────────────────────────────────────────
+# ── Seletor de Mês ───────────────────────────────────────────────────────────
 
-def _render_cargo_badge(cargo: str, squad: Optional[str]) -> None:
-    cargo_labels = {
-        "ceo":      ("👑 CEO · Acesso Total",              "#FFD700", "#1a1500"),
-        "head":     (f"🎯 Head · Squad {squad or '—'}",   "#00C853", "#001a0a"),
-        "analista": ("📊 Analista · Meus Projetos",        "#3B82F6", "#00102a"),
-    }
-    badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
-
-    html_badge = f"""
-<div class="glass-card highlight" style="margin-bottom:20px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-<div>
-<h3 style="margin:0 0 4px 0; color:#00C853;">✦ Performance GPS</h3>
-<p style="margin:0; color:#6b7280; font-size:0.85rem;">Dados em tempo real via Google Sheets · Aba 🏆 GPS / 26</p>
-</div>
-<span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; border-radius:20px; padding:4px 14px; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; white-space:nowrap;">{badge_text}</span>
-</div>
-</div>
-"""
-    st.markdown(html_badge, unsafe_allow_html=True)
-
-
-def _render_selectors(projetos: list) -> tuple[Optional[dict], str]:
-    """Renderiza selectbox de projeto + mês e retorna as seleções."""
-    nomes = [p.get("nome") or f"Projeto {i+1}" for i, p in enumerate(projetos)]
-
-    # Mês padrão: mês atual (ou anterior nos primeiros 5 dias)
+def _render_month_selector() -> str:
+    """Renderiza apenas o seletor de mês (projeto agora vive na sidebar)."""
     hoje = date.today()
     mes_padrao_idx = hoje.month - 1
     if hoje.day <= 5 and hoje.month > 1:
         mes_padrao_idx = hoje.month - 2
 
-    col_proj, col_mes = st.columns([3, 1])
-
-    with col_proj:
-        nome_sel = st.selectbox(
-            "📁 Projeto",
-            options=nomes,
-            key="sel_projeto_dashboard",
-        )
-
+    _, _, col_mes = st.columns([2, 2, 1])
     with col_mes:
         mes_sel = st.selectbox(
             "📅 Mês",
@@ -164,11 +112,162 @@ def _render_selectors(projetos: list) -> tuple[Optional[dict], str]:
             index=mes_padrao_idx,
             key="sel_mes_dashboard",
         )
-
-    idx = nomes.index(nome_sel)
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-    return projetos[idx], mes_sel
+    return mes_sel
 
+
+# ── Visão Individual (projeto específico) ────────────────────────────────────
+
+def _render_visao_individual(projeto: dict, mes_sel: str) -> None:
+    """Renderiza o dashboard para um único projeto selecionado."""
+    sheet_id: Optional[str] = projeto.get("google_sheet_id")
+
+    if not sheet_id:
+        _render_config_pendente(
+            projeto.get("nome_cliente") or projeto.get("nome", "Projeto"),
+            motivo="google_sheet_id não cadastrado para este projeto."
+        )
+        return
+
+    with st.spinner(f"Conectando à planilha de {projeto.get('nome_cliente') or projeto.get('nome', '')}..."):
+        dados = get_gps_data(sheet_id=sheet_id, mes_abrev=mes_sel)
+
+    if dados.get("erro"):
+        _render_config_pendente(
+            projeto.get("nome_cliente") or projeto.get("nome", "Projeto"),
+            motivo=dados["erro"]
+        )
+        return
+
+    _render_alavancas(dados)
+    _render_pacing(dados, mes_sel)
+    _render_resumo_financeiro(dados)
+
+
+# ── Visão Agregada (CEO — todos os projetos) ─────────────────────────────────
+
+def _render_visao_agregada(projetos: list[dict], mes_sel: str) -> None:
+    """
+    Visão Agregada para o CEO: busca dados GPS de todos os projetos
+    e calcula métricas consolidadas.
+
+    Regras de agregação (aprovadas pelo usuário):
+      - Soma: Receita Faturada, Investimento Total
+      - Média Ponderada (por Investimento): CPS, Ticket Médio, CVR
+      - Pacing: Soma Receita Realizada / Soma Receita Projetada
+    """
+    # Contadores
+    projetos_ok = 0
+    projetos_sem_config = 0
+    nomes_sem_config: list[str] = []
+
+    # Acumuladores para soma
+    soma_receita_real = 0.0
+    soma_receita_proj = 0.0
+    soma_invest_real  = 0.0
+    soma_invest_proj  = 0.0
+
+    # Acumuladores para média ponderada (peso = investimento realizado)
+    peso_total = 0.0
+    wp_cps = 0.0   # weighted sum: CPS × peso
+    wp_tmd = 0.0   # weighted sum: Ticket × peso
+    wp_cvr = 0.0   # weighted sum: CVR × peso
+
+    pacing_mes = 0.0
+
+    with st.spinner("Agregando dados de todos os projetos..."):
+        for p in projetos:
+            sheet_id = p.get("google_sheet_id")
+            if not sheet_id:
+                projetos_sem_config += 1
+                nomes_sem_config.append(p.get("nome_cliente") or p.get("nome", "?"))
+                continue
+
+            dados = get_gps_data(sheet_id=sheet_id, mes_abrev=mes_sel)
+            if dados.get("erro"):
+                projetos_sem_config += 1
+                nomes_sem_config.append(p.get("nome_cliente") or p.get("nome", "?"))
+                continue
+
+            projetos_ok += 1
+            pacing_mes = dados.get("pacing_mes", 0.0)
+
+            # Soma direta
+            r_real = dados["realizado"].get("Receita Faturada")
+            r_proj = dados["projetado"].get("Receita Faturada")
+            i_real = dados["realizado"].get("Investimento Total")
+            i_proj = dados["projetado"].get("Investimento Total")
+
+            if r_real is not None:
+                soma_receita_real += r_real
+            if r_proj is not None:
+                soma_receita_proj += r_proj
+            if i_real is not None:
+                soma_invest_real += i_real
+            if i_proj is not None:
+                soma_invest_proj += i_proj
+
+            # Média ponderada (peso = investimento realizado do projeto)
+            peso = i_real if i_real and i_real > 0 else 0
+            if peso > 0:
+                peso_total += peso
+                cps = dados["realizado"].get("Custo por Sessão")
+                tmd = dados["realizado"].get("Ticket Médio")
+                cvr = dados["realizado"].get("Taxa de Conversão")
+                if cps is not None:
+                    wp_cps += cps * peso
+                if tmd is not None:
+                    wp_tmd += tmd * peso
+                if cvr is not None:
+                    wp_cvr += cvr * peso
+
+    if projetos_ok == 0:
+        st.warning("Nenhum projeto com dados GPS disponíveis para agregar.")
+        if nomes_sem_config:
+            _render_log_sem_config(nomes_sem_config)
+        return
+
+    # ── Monta dict agregado no mesmo formato que get_gps_data retorna ─────
+    avg_cps = (wp_cps / peso_total) if peso_total > 0 else None
+    avg_tmd = (wp_tmd / peso_total) if peso_total > 0 else None
+    avg_cvr = (wp_cvr / peso_total) if peso_total > 0 else None
+
+    dados_agregados = {
+        "realizado": {
+            "Receita Faturada":   soma_receita_real or None,
+            "Investimento Total": soma_invest_real or None,
+            "Custo por Sessão":   avg_cps,
+            "Ticket Médio":       avg_tmd,
+            "Taxa de Conversão":  avg_cvr,
+        },
+        "projetado": {
+            "Receita Faturada":   soma_receita_proj or None,
+            "Investimento Total": soma_invest_proj or None,
+            "Custo por Sessão":   None,
+            "Ticket Médio":       None,
+            "Taxa de Conversão":  None,
+        },
+        "pacing_mes": pacing_mes,
+        "erro": None,
+    }
+
+    # Header informativo
+    st.markdown(
+        f"<p style='color:#6b7280; font-size:0.78rem; margin-bottom:16px;'>"
+        f"📊 Visão Agregada · <strong style='color:#FAFAFA;'>{projetos_ok}</strong> "
+        f"projetos consolidados</p>",
+        unsafe_allow_html=True,
+    )
+
+    _render_alavancas(dados_agregados)
+    _render_pacing(dados_agregados, mes_sel)
+    _render_resumo_financeiro(dados_agregados)
+
+    if nomes_sem_config:
+        _render_log_sem_config(nomes_sem_config)
+
+
+# ── Seções de Renderização (compartilhadas) ──────────────────────────────────
 
 def _render_alavancas(dados: dict) -> None:
     """Renderiza os 3 cards grandes das Alavancas de Performance."""
@@ -236,11 +335,10 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
         ating = receita_real / receita_proj
 
     # Determina status Verde/Vermelho
-    # Regra: se atingimento >= pacing_mes → no ritmo (Verde); senão → abaixo (Vermelho)
     if ating is not None and pacing_mes > 0:
         on_track = ating >= pacing_mes
     else:
-        on_track = None  # sem dados suficientes
+        on_track = None
 
     # Cores e textos
     if on_track is True:
@@ -267,7 +365,6 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
     receita_str = fmt_brl(receita_real)
     proj_str    = fmt_brl(receita_proj)
 
-    # Barra de progresso: fundo cinza + overlay de atingimento sobre pacing
     bar_pacing_w = min(pacing_mes * 100, 100)
     bar_ating_w  = min((ating or 0) * 100, 100)
 
@@ -390,3 +487,20 @@ def _render_config_pendente(nome_projeto: str, motivo: str = "") -> None:
 </div>
 """
     st.markdown(html_erro, unsafe_allow_html=True)
+
+
+def _render_log_sem_config(nomes: list[str]) -> None:
+    """Log discreto no final da página informando projetos sem configuração."""
+    count = len(nomes)
+    lista = ", ".join(nomes[:5])
+    if count > 5:
+        lista += f" (+{count - 5} outros)"
+
+    html_log = f"""
+<div style="margin-top:24px; padding:12px 18px; background:rgba(251,191,36,0.05); border:1px solid rgba(251,191,36,0.15); border-radius:8px;">
+<p style="color:#6b7280; font-size:0.75rem; margin:0;">
+⚠️ <strong style="color:#FCD34D;">{count} projeto(s)</strong> não incluído(s) por falta de configuração: <span style="color:#9CA3AF;">{lista}</span>
+</p>
+</div>
+"""
+    st.markdown(html_log, unsafe_allow_html=True)
