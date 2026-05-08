@@ -112,7 +112,7 @@ hide_st_style = """
                 padding: 10px 14px !important;
                 font-size: 0.88rem !important;
                 font-weight: 400 !important;
-                font-family: 'Lexend', sans-serif !important;
+                font-family: 'Inter', sans-serif !important;
                 border-radius: 10px !important;
                 width: 100% !important;
                 display: flex !important;
@@ -214,7 +214,7 @@ def render_header():
         div[data-testid="stPopover"] > div > button p {{
             color: #00C853 !important;
             font-weight: 700 !important;
-            font-family: 'Lexend', sans-serif !important;
+            font-family: 'Inter', sans-serif !important;
             font-size: 18px !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -251,7 +251,7 @@ def render_header():
             padding: 8px 10px !important;
             font-size: 14px !important;
             font-weight: 500 !important;
-            font-family: 'Lexend', sans-serif !important;
+            font-family: 'Inter', sans-serif !important;
             width: 100% !important;
             display: flex !important;
             justify-content: flex-start !important;
@@ -295,7 +295,7 @@ def _render_sidebar_agency():
     cargo = get_user_cargo()
 
     # ── Menu Principal ────────────────────────────────────────────────────
-    if st.button("📊  Visão Geral", key="nav_visao_geral", use_container_width=True):
+    if st.button("Visão Geral", key="nav_visao_geral", use_container_width=True):
         set_page("Visão Geral")
         st.rerun()
 
@@ -307,10 +307,10 @@ def _render_sidebar_agency():
         for squad_name in squads:
             projetos_squad = get_projects_by_squad(squad_name)
 
-            with st.expander(f"👥 {squad_name}", expanded=False):
+            with st.expander(f"{squad_name}", expanded=False):
                 # Botão para ver o dashboard do squad
                 if st.button(
-                    f"📋 Dashboard do Squad",
+                    f"Dashboard do Squad",
                     key=f"squad_dash_{squad_name}",
                     use_container_width=True,
                 ):
@@ -322,7 +322,7 @@ def _render_sidebar_agency():
                 for p in projetos_squad:
                     nome = get_project_display_name(p)
                     if st.button(
-                        f"  📁 {nome}",
+                        f"  {nome}",
                         key=f"nav_proj_{p.get('id', nome)}",
                         use_container_width=True,
                     ):
@@ -333,7 +333,7 @@ def _render_sidebar_agency():
         for p in projetos:
             nome = get_project_display_name(p)
             if st.button(
-                f"📁  {nome}",
+                f"{nome}",
                 key=f"nav_proj_{p.get('id', nome)}",
                 use_container_width=True,
             ):
@@ -343,7 +343,7 @@ def _render_sidebar_agency():
     if cargo == "ceo":
         st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
 
-        if st.button("👑  CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
+        if st.button("CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
             set_page("CEO Dashboard")
             st.rerun()
 
@@ -351,9 +351,9 @@ def _render_sidebar_agency():
     st.markdown('<p class="sidebar-section-label">EM BREVE</p>', unsafe_allow_html=True)
     st.markdown("""
     <div style="padding: 4px 14px;">
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">📅 Calendário</p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">💬 Reuniões</p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">🔔 Notificações</p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-calendar3" style="margin-right:6px; font-size:0.85rem;"></i>Calendário</p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-chat-dots" style="margin-right:6px; font-size:0.85rem;"></i>Reuniões</p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-bell" style="margin-right:6px; font-size:0.85rem;"></i>Notificações</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -391,15 +391,15 @@ def _render_sidebar_project():
     st.markdown('<p class="sidebar-section-label">PERFORMANCE</p>', unsafe_allow_html=True)
 
     modules_perf = [
-        ("📊", "GPS Dashboard", "nav_gps"),
-        ("🧠", "Brain", "nav_brain"),
-        ("🎨", "Criativos", "nav_criativos"),
-        ("💰", "Financeiro", "nav_financeiro"),
+        ("GPS Dashboard", "nav_gps"),
+        ("Brain", "nav_brain"),
+        ("Criativos", "nav_criativos"),
+        ("Financeiro", "nav_financeiro"),
     ]
 
-    for icon, label, key in modules_perf:
+    for label, key in modules_perf:
         if st.button(
-            f"{icon}  {label}",
+            label,
             key=key,
             use_container_width=True,
         ):
@@ -411,9 +411,9 @@ def _render_sidebar_project():
 
     st.markdown("""
     <div style="padding: 4px 14px;">
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">📋 Planejamento <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">📅 Calendário <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;">📝 Reuniões <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-kanban" style="margin-right:6px; font-size:0.85rem;"></i>Planejamento <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-calendar3" style="margin-right:6px; font-size:0.85rem;"></i>Calendário <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
+        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-journal-text" style="margin-right:6px; font-size:0.85rem;"></i>Reuniões <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -501,7 +501,7 @@ if nivel == "agencia":
 
     elif pagina_ativa == "CEO Dashboard":
         if is_ceo():
-            render_cargo_badge("👑 CEO Dashboard", "Visão consolidada de toda a agência.")
+            render_cargo_badge("CEO Dashboard", "Visão consolidada de toda a agência.")
             from modules.dashboard import render_visao_geral
             # CEO Dashboard reutiliza a visão agregada
             render_visao_geral()
@@ -524,7 +524,7 @@ elif nivel == "projeto":
         _nome = get_project_display_name(projeto) if projeto else "—"
         st.markdown(
             f"""<div class="glass-card" style="text-align:center; padding:48px 32px;">
-                <div style="font-size:3rem; margin-bottom:16px;">🧠</div>
+                <div style="font-size:2.5rem; margin-bottom:16px; color:#00C853;"><i class="bi bi-lightbulb-fill"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
                 <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00C853;">{_nome}</strong><br>
                 Em breve: análises estratégicas e alertas de performance.</p>
@@ -542,7 +542,7 @@ elif nivel == "projeto":
         _nome = get_project_display_name(projeto) if projeto else "—"
         st.markdown(
             f"""<div class="glass-card" style="text-align:center; padding:48px 32px;">
-                <div style="font-size:3rem; margin-bottom:16px;">💳</div>
+                <div style="font-size:2.5rem; margin-bottom:16px; color:#00C853;"><i class="bi bi-wallet2"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
                 <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00C853;">{_nome}</strong><br>
                 Em breve: MRR, churn, LTV e projeções de receita.</p>

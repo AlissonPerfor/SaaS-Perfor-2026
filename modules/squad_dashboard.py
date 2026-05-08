@@ -51,7 +51,7 @@ def render_squad_dashboard(squad_name: str | None = None) -> None:
     if not projetos:
         st.markdown("""
         <div class="glass-card" style="text-align:center; padding:48px 32px;">
-            <div style="font-size:3rem; margin-bottom:16px;">📭</div>
+            <div style="font-size:2.5rem; margin-bottom:16px; color:#6b7280;"><i class="bi bi-inbox"></i></div>
             <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum cliente encontrado</h3>
             <p style="color:#6b7280; font-size:0.88rem; margin:0;">Este squad não possui projetos vinculados.</p>
         </div>
@@ -64,7 +64,7 @@ def render_squad_dashboard(squad_name: str | None = None) -> None:
     # ── Lista de Clientes ─────────────────────────────────────────────────────
     st.markdown("""
     <p style="color:#4b5563; font-size:0.68rem; letter-spacing:1.5px;
-    margin-top:28px; margin-bottom:12px;">📋 CLIENTES</p>
+    margin-top:28px; margin-bottom:12px;"><i class="bi bi-list-ul" style="margin-right:4px;"></i> CLIENTES</p>
     """, unsafe_allow_html=True)
 
     for projeto in projetos:
@@ -79,10 +79,10 @@ def _render_squad_kpis(projetos: list[dict]) -> None:
     sem_config = total_clientes - com_sheet
 
     kpis = [
-        ("👥", "CLIENTES", str(total_clientes), "#00C853"),
-        ("📊", "COM GPS", str(com_sheet), "#3B82F6"),
-        ("📱", "COM META", str(com_meta), "#8B5CF6"),
-        ("⚠️", "PENDENTES", str(sem_config), "#FCD34D" if sem_config > 0 else "#6b7280"),
+        ('<i class="bi bi-people-fill"></i>', "CLIENTES", str(total_clientes), "#00C853"),
+        ('<i class="bi bi-speedometer2"></i>', "COM GPS", str(com_sheet), "#3B82F6"),
+        ('<i class="bi bi-phone-fill"></i>', "COM META", str(com_meta), "#8B5CF6"),
+        ('<i class="bi bi-exclamation-triangle-fill"></i>', "PENDENTES", str(sem_config), "#FCD34D" if sem_config > 0 else "#6b7280"),
     ]
 
     cols = st.columns(4, gap="medium")
@@ -90,7 +90,7 @@ def _render_squad_kpis(projetos: list[dict]) -> None:
         with col:
             st.markdown(f"""
             <div class="glass-card" style="text-align:center; padding:18px 12px;">
-                <div style="font-size:1.4rem; margin-bottom:6px;">{icon}</div>
+                <div style="font-size:1.2rem; margin-bottom:6px; color:{color};">{icon}</div>
                 <p style="font-size:1.6rem; font-weight:700; color:{color}; margin:0 0 4px 0;">{value}</p>
                 <p style="color:#4b5563; font-size:0.65rem; letter-spacing:1.5px; margin:0; font-weight:600;">{label}</p>
             </div>
