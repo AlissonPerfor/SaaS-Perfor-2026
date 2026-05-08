@@ -36,7 +36,7 @@ from core.sheets import (
 ALAVANCAS = [
     {
         "key":    "Custo por Sessão",
-        "icon":   "🖥️",
+        "icon":   '<i class="bi bi-display" style="color:#00C853;"></i>',
         "label":  "Custo por Sessão",
         "hint":   "CPS",
         "tipo":   "brl",
@@ -44,7 +44,7 @@ ALAVANCAS = [
     },
     {
         "key":    "Ticket Médio",
-        "icon":   "🎫",
+        "icon":   '<i class="bi bi-credit-card" style="color:#3B82F6;"></i>',
         "label":  "Ticket Médio",
         "hint":   "TMD",
         "tipo":   "brl",
@@ -52,7 +52,7 @@ ALAVANCAS = [
     },
     {
         "key":    "Taxa de Conversão",
-        "icon":   "🔄",
+        "icon":   '<i class="bi bi-graph-up-arrow" style="color:#8B5CF6;"></i>',
         "label":  "Taxa de Conversão",
         "hint":   "CVR",
         "tipo":   "pct",
@@ -73,7 +73,7 @@ def render_visao_geral() -> None:
     """
     render_cargo_badge(
         "✦ Performance GPS",
-        "Dados em tempo real via Google Sheets · Aba 🏆 GPS / 26",
+        "Dados em tempo real via Google Sheets",
     )
 
     projetos = get_all_projects()
@@ -107,7 +107,7 @@ def _render_month_selector() -> str:
     _, _, col_mes = st.columns([2, 2, 1])
     with col_mes:
         mes_sel = st.selectbox(
-            "📅 Mês",
+            "Mês",
             options=MESES_ABREV,
             index=mes_padrao_idx,
             key="sel_mes_dashboard",
@@ -254,7 +254,7 @@ def _render_visao_agregada(projetos: list[dict], mes_sel: str) -> None:
     # Header informativo
     st.markdown(
         f"<p style='color:#6b7280; font-size:0.78rem; margin-bottom:16px;'>"
-        f"📊 Visão Agregada · <strong style='color:#FAFAFA;'>{projetos_ok}</strong> "
+        f"<i class='bi bi-layers-fill' style='margin-right:4px;'></i> Visão Agregada · <strong style='color:#FAFAFA;'>{projetos_ok}</strong> "
         f"projetos consolidados</p>",
         unsafe_allow_html=True,
     )
@@ -273,7 +273,7 @@ def _render_alavancas(dados: dict) -> None:
     """Renderiza os 3 cards grandes das Alavancas de Performance."""
     st.markdown(
         "<p style='color:#6b7280; font-size:0.72rem; letter-spacing:1.5px; "
-        "margin-bottom:10px; margin-top:4px;'>⚡ ALAVANCAS DE PERFORMANCE</p>",
+        "margin-bottom:10px; margin-top:4px;'><i class='bi bi-lightning-charge-fill' style='margin-right:4px;'></i> ALAVANCAS DE PERFORMANCE</p>",
         unsafe_allow_html=True,
     )
 
@@ -310,7 +310,7 @@ def _render_alavancas(dados: dict) -> None:
             html_card = f"""
 <div class="glass-card" style="text-align:center; padding:28px 20px; position:relative; overflow:hidden;">
 <div style="position:absolute; top:-30px; right:-30px; width:90px; height:90px; background:radial-gradient(circle, rgba(0,200,83,0.08) 0%, transparent 70%); border-radius:50%;"></div>
-<div style="font-size:2rem; margin-bottom:6px;">{alav['icon']}</div>
+<div style="font-size:1.8rem; margin-bottom:6px;">{alav['icon']}</div>
 <p style="color:#6b7280; font-size:0.7rem; letter-spacing:1.5px; margin-bottom:12px; font-weight:600;">{alav['label'].upper()}</p>
 <p style="font-size:2.2rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-1px;">{val_str}</p>
 <p style="color:{delta_color}; font-size:0.8rem; margin:0 0 8px 0; font-weight:500;">{delta_str if delta_str else "Sem projetado"}</p>
@@ -345,19 +345,19 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
         status_color = "#00C853"
         status_bg    = "rgba(0,200,83,0.08)"
         status_bdr   = "rgba(0,200,83,0.35)"
-        status_icon  = "🟢"
+        status_icon  = '<i class="bi bi-check-circle-fill"></i>'
         status_text  = "Em Ritmo"
     elif on_track is False:
         status_color = "#EF4444"
         status_bg    = "rgba(239,68,68,0.08)"
         status_bdr   = "rgba(239,68,68,0.35)"
-        status_icon  = "🔴"
+        status_icon  = '<i class="bi bi-exclamation-circle-fill"></i>'
         status_text  = "Abaixo do Ritmo"
     else:
         status_color = "#6b7280"
         status_bg    = "rgba(107,114,128,0.08)"
         status_bdr   = "rgba(107,114,128,0.35)"
-        status_icon  = "⚪"
+        status_icon  = '<i class="bi bi-dash-circle"></i>'
         status_text  = "Sem dados suficientes"
 
     pacing_pct  = f"{pacing_mes * 100:.1f}%".replace(".", ",")
@@ -371,7 +371,7 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6b7280; font-size:0.72rem; letter-spacing:1.5px; "
-        "margin-bottom:10px;'>🎯 PACING DE FATURAMENTO</p>",
+        "margin-bottom:10px;'><i class='bi bi-bullseye' style='margin-right:4px;'></i> PACING DE FATURAMENTO</p>",
         unsafe_allow_html=True,
     )
 
@@ -414,15 +414,15 @@ def _render_resumo_financeiro(dados: dict) -> None:
     st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6b7280; font-size:0.72rem; letter-spacing:1.5px; "
-        "margin-bottom:10px;'>💰 RESUMO FINANCEIRO</p>",
+        "margin-bottom:10px;'><i class='bi bi-cash-stack' style='margin-right:4px;'></i> RESUMO FINANCEIRO</p>",
         unsafe_allow_html=True,
     )
 
     col_rec, col_inv = st.columns(2, gap="medium")
 
     resumo_items = [
-        (col_rec, "💵", "Receita Faturada"),
-        (col_inv, "📈", "Investimento Total"),
+        (col_rec, '<i class="bi bi-cash-coin" style="font-size:1.2rem; color:#00C853;"></i>', "Receita Faturada"),
+        (col_inv, '<i class="bi bi-graph-up" style="font-size:1.2rem; color:#3B82F6;"></i>', "Investimento Total"),
     ]
 
     for col, icon, metrica in resumo_items:
@@ -466,7 +466,7 @@ def _render_resumo_financeiro(dados: dict) -> None:
 def _render_sem_projetos() -> None:
     html_vazio = """
 <div class="glass-card" style="text-align:center; padding:48px 32px;">
-<div style="font-size:3rem; margin-bottom:16px;">📭</div>
+<div style="font-size:2.5rem; margin-bottom:16px; color:#6b7280;"><i class="bi bi-inbox"></i></div>
 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum projeto encontrado</h3>
 <p style="color:#6b7280; font-size:0.88rem; margin:0;">Seu perfil de acesso não possui projetos vinculados.<br>Fale com o administrador do sistema.</p>
 </div>
@@ -477,7 +477,7 @@ def _render_sem_projetos() -> None:
 def _render_config_pendente(nome_projeto: str, motivo: str = "") -> None:
     html_erro = f"""
 <div class="glass-card" style="border-color:rgba(251,191,36,0.4); background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
-<div style="font-size:2.5rem; margin-bottom:14px;">⚙️</div>
+<div style="font-size:2rem; margin-bottom:14px; color:#FCD34D;"><i class="bi bi-gear-fill"></i></div>
 <h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">Configuração da Planilha Pendente</h3>
 <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os dados do GPS para <strong style="color:#FAFAFA;">{nome_projeto}</strong>.</p>
 <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:10px 16px; display:inline-block; max-width:600px;">
@@ -499,7 +499,7 @@ def _render_log_sem_config(nomes: list[str]) -> None:
     html_log = f"""
 <div style="margin-top:24px; padding:12px 18px; background:rgba(251,191,36,0.05); border:1px solid rgba(251,191,36,0.15); border-radius:8px;">
 <p style="color:#6b7280; font-size:0.75rem; margin:0;">
-⚠️ <strong style="color:#FCD34D;">{count} projeto(s)</strong> não incluído(s) por falta de configuração: <span style="color:#9CA3AF;">{lista}</span>
+<i class="bi bi-exclamation-triangle-fill" style="margin-right:4px;"></i> <strong style="color:#FCD34D;">{count} projeto(s)</strong> não incluído(s) por falta de configuração: <span style="color:#9CA3AF;">{lista}</span>
 </p>
 </div>
 """

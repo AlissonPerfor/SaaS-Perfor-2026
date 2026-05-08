@@ -22,7 +22,7 @@ from core.database import get_projects
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
-_ALL_PROJECTS_LABEL = "📊 Todos os Projetos (Agregado)"
+_ALL_PROJECTS_LABEL = "Todos os Projetos (Agregado)"
 
 
 # ── Inicialização do Contexto ─────────────────────────────────────────────────
@@ -167,14 +167,15 @@ def render_cargo_badge(title: str, subtitle: str) -> None:
     """
     Renderiza o badge de cargo + título da seção em um glass-card.
     Versão centralizada — substitui as cópias duplicadas nos módulos.
+    Usa Bootstrap Icons em vez de emojis.
     """
     cargo = get_user_cargo()
     squad = get_user_squad()
 
     cargo_labels = {
-        "ceo":      ("👑 CEO · Acesso Total",              "#FFD700", "#1a1500"),
-        "head":     (f"🎯 Head · Squad {squad or '—'}",   "#00C853", "#001a0a"),
-        "analista": ("📊 Analista · Meus Projetos",        "#3B82F6", "#00102a"),
+        "ceo":      ('<i class="bi bi-shield-fill-check"></i> CEO · Acesso Total',   "#FFD700", "#1a1500"),
+        "head":     (f'<i class="bi bi-bullseye"></i> Head · Squad {squad or "—"}',  "#00C853", "#001a0a"),
+        "analista": ('<i class="bi bi-bar-chart-fill"></i> Analista · Meus Projetos', "#3B82F6", "#00102a"),
     }
     badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
 
@@ -192,10 +193,11 @@ def render_cargo_badge(title: str, subtitle: str) -> None:
 <p style="margin:0; color:#6b7280; font-size:0.85rem;">{subtitle}</p>
 </div>
 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-<span style="background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:4px 14px; font-size:0.72rem; font-weight:500; letter-spacing:0.3px; white-space:nowrap;">🏢 {projeto_nome}</span>
+<span style="background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:4px 14px; font-size:0.72rem; font-weight:500; letter-spacing:0.3px; white-space:nowrap;"><i class="bi bi-building" style="margin-right:4px;"></i>{projeto_nome}</span>
 <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; border-radius:20px; padding:4px 14px; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; white-space:nowrap;">{badge_text}</span>
 </div>
 </div>
 </div>
 """
     st.markdown(html_badge, unsafe_allow_html=True)
+

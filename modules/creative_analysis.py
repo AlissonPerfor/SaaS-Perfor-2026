@@ -25,7 +25,7 @@ def render_criativos() -> None:
         # CEO com "Todos os Projetos" selecionado — pede para escolher um
         st.markdown(
             """<div class="glass-card" style="text-align:center; padding:40px 32px;">
-                <div style="font-size:2.5rem; margin-bottom:14px;">🎯</div>
+                <div style="font-size:2rem; margin-bottom:14px; color:#3B82F6;"><i class="bi bi-bullseye"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0; font-size:1rem;">Selecione um Projeto</h3>
                 <p style="color:#6b7280; font-size:0.88rem; margin:0;">Para visualizar os criativos, selecione um projeto específico no seletor da sidebar.</p>
             </div>""",
@@ -43,7 +43,7 @@ def render_criativos() -> None:
     if not meta_account_id:
         html_erro = f"""
         <div class="glass-card" style="border-color:rgba(251,191,36,0.4); background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
-        <div style="font-size:2.5rem; margin-bottom:14px;">⚙️</div>
+        <div style="font-size:2rem; margin-bottom:14px; color:#FCD34D;"><i class="bi bi-gear-fill"></i></div>
         <h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">Conta Meta Não Configurada</h3>
         <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os anúncios para <strong style="color:#FAFAFA;">{projeto.get('nome_cliente') or projeto.get('nome', 'Projeto')}</strong>.</p>
         <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:10px 16px; display:inline-block; max-width:600px;">
@@ -58,7 +58,7 @@ def render_criativos() -> None:
     st.markdown(f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:20px; text-align:right;'>Meta Account ID: <strong>{meta_account_id}</strong></p>", unsafe_allow_html=True)
 
     # Tabs para estruturar a página
-    tab1, tab2 = st.tabs(["🔥 Anúncios Ativos (Placeholder)", "📈 Análise de Formatos"])
+    tab1, tab2 = st.tabs(["Anúncios Ativos (Placeholder)", "Análise de Formatos"])
 
     with tab1:
         st.markdown(
@@ -118,10 +118,10 @@ def render_criativos() -> None:
                         <h4 style="margin: 0 0 12px 0; font-size: 1rem; color: #FAFAFA; line-height: 1.3;">{ad['nome']}</h4>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 1rem;">{'🎥' if ad['tipo'] == 'Vídeo' else '🖼️'}</span>
+                                <span style="font-size: 0.9rem; color:#9CA3AF;">{'<i class="bi bi-camera-video-fill"></i>' if ad['tipo'] == 'Vídeo' else '<i class="bi bi-image-fill"></i>'}</span>
                                 <span style="font-size: 0.8rem; color: #9CA3AF;">{ad['tipo']}</span>
                             </div>
-                            <span style="font-size: 0.8rem; color: #9CA3AF;">📅 {ad['data_ativacao']}</span>
+                            <span style="font-size: 0.8rem; color: #9CA3AF;"><i class="bi bi-calendar3" style="margin-right:3px;"></i>{ad['data_ativacao']}</span>
                         </div>
                     </div>
                     <div style="display: inline-block; align-self: flex-start; padding: 4px 12px; border-radius: 20px; background: {status_bg}; border: 1px solid {status_color};">
@@ -133,7 +133,7 @@ def render_criativos() -> None:
     with tab2:
         st.markdown(
             """<div class="glass-card" style="text-align:center; padding:48px 32px; margin-top: 16px;">
-                <div style="font-size:3rem; margin-bottom:16px;">🚧</div>
+                <div style="font-size:2.5rem; margin-bottom:16px; color:#6b7280;"><i class="bi bi-tools"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
                 <p style="color:#6b7280; font-size:0.88rem; margin:0;">Em breve: Comparativo de CTR, Hook Rate e performance por formato criativo com dados reais da API do Meta Ads.</p>
             </div>""",
