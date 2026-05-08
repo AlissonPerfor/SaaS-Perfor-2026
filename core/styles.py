@@ -5,6 +5,7 @@ def apply_global_styles():
     """
     CSS global da Perfor.ia — identidade Moderna, Tecnológica e Dinâmica.
     Fonte: Lexend (Google Fonts) · Glassmorphism com vidro fosco premium.
+    Inclui estilos para a sidebar dinâmica de navegação por níveis.
     """
     st.markdown(
         """
@@ -109,6 +110,156 @@ def apply_global_styles():
                 text-align: center;
                 padding: 20px 16px;
             }
+
+            /* ══════════════════════════════════════════════════════════════════
+               SIDEBAR DINÂMICA — Navegação por Níveis (Estilo Axoly)
+               ══════════════════════════════════════════════════════════════════ */
+
+            /* ── Seção label (SQUADS, PERFORMANCE, GESTÃO) ── */
+            .sidebar-section-label {
+                color: #4b5563;
+                font-size: 0.65rem;
+                font-weight: 600;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                margin: 24px 0 8px 4px;
+                padding: 0;
+            }
+
+            /* ── Item de navegação da sidebar ── */
+            .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 14px;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-decoration: none;
+                margin-bottom: 2px;
+            }
+
+            .nav-item:hover {
+                background: rgba(255, 255, 255, 0.04);
+            }
+
+            .nav-item.active {
+                background: rgba(0, 200, 83, 0.10);
+                border-left: 3px solid #00C853;
+            }
+
+            .nav-item .nav-icon {
+                font-size: 1.1rem;
+                width: 24px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+            .nav-item .nav-label {
+                font-size: 0.88rem;
+                color: #D1D5DB;
+                font-weight: 400;
+                white-space: nowrap;
+            }
+
+            .nav-item.active .nav-label {
+                color: #00C853;
+                font-weight: 600;
+            }
+
+            /* ── Squad expandível ── */
+            .squad-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 14px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .squad-header:hover {
+                background: rgba(255, 255, 255, 0.04);
+            }
+
+            .squad-client {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 14px 8px 38px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .squad-client:hover {
+                background: rgba(0, 200, 83, 0.08);
+            }
+
+            .squad-client .client-name {
+                font-size: 0.82rem;
+                color: #9CA3AF;
+                font-weight: 400;
+            }
+
+            .squad-client.active .client-name {
+                color: #00C853;
+                font-weight: 500;
+            }
+
+            /* ── Projeto header na sidebar nível projeto ── */
+            .project-header {
+                padding: 16px 14px;
+                margin-bottom: 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+
+            .project-header .project-name {
+                font-size: 1.05rem;
+                font-weight: 600;
+                color: #FAFAFA;
+                margin: 0 0 4px 0;
+            }
+
+            .project-header .project-category {
+                font-size: 0.75rem;
+                color: #6b7280;
+                margin: 0;
+            }
+
+            /* ── Botão Voltar ── */
+            .back-button {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 14px;
+                margin-top: 16px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .back-button:hover {
+                background: rgba(255, 255, 255, 0.04);
+                border-radius: 8px;
+            }
+
+            .back-button span {
+                font-size: 0.82rem;
+                color: #6b7280;
+                font-weight: 400;
+            }
+
+            /* ── Esconde botões do Streamlit dentro de nav items ── */
+            /* Estilo para botões Streamlit usados como nav items */
+            .stButton > button[kind="secondary"] {
+                background: transparent !important;
+                border: none !important;
+                text-align: left !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+
         </style>
         """,
         unsafe_allow_html=True,
