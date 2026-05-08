@@ -103,8 +103,8 @@ def render_criativos() -> None:
         for i, ad in enumerate(mock_ads):
             with cols[i % 3]:
                 if ad["status"] == "Ativo":
-                    status_color = "#00C853"
-                    status_bg = "rgba(0,200,83,0.15)"
+                    status_color = "#00d592"
+                    status_bg = "rgba(0,213,146,0.15)"
                 else:
                     status_color = "#FCD34D"
                     status_bg = "rgba(251,191,36,0.15)"

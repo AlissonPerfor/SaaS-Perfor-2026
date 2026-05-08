@@ -79,7 +79,7 @@ def _render_squad_kpis(projetos: list[dict]) -> None:
     sem_config = total_clientes - com_sheet
 
     kpis = [
-        ('<i class="bi bi-people-fill"></i>', "CLIENTES", str(total_clientes), "#00C853"),
+        ('<i class="bi bi-people-fill"></i>', "CLIENTES", str(total_clientes), "#00d592"),
         ('<i class="bi bi-speedometer2"></i>', "COM GPS", str(com_sheet), "#3B82F6"),
         ('<i class="bi bi-phone-fill"></i>', "COM META", str(com_meta), "#8B5CF6"),
         ('<i class="bi bi-exclamation-triangle-fill"></i>', "PENDENTES", str(sem_config), "#FCD34D" if sem_config > 0 else "#6b7280"),
@@ -120,7 +120,7 @@ def _render_client_card(projeto: dict) -> None:
     st.markdown(f"""
     <div class="glass-card" style="padding:16px 20px; cursor:pointer;" id="client-{projeto.get('id', '')}">
         <div style="display:flex; align-items:center; gap:14px;">
-            <div style="width:42px; height:42px; border-radius:10px; background:rgba(0,200,83,0.12); border:1px solid rgba(0,200,83,0.25); display:flex; align-items:center; justify-content:center; font-weight:700; color:#00C853; font-size:1.1rem; flex-shrink:0;">
+            <div style="width:42px; height:42px; border-radius:10px; background:rgba(0,213,146,0.12); border:1px solid rgba(0,213,146,0.25); display:flex; align-items:center; justify-content:center; font-weight:700; color:#00d592; font-size:1.1rem; flex-shrink:0;">
                 {inicial}
             </div>
             <div style="flex:1; min-width:0;">

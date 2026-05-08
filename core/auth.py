@@ -144,7 +144,7 @@ def show_login_page() -> None:
             margin-top: 30px !important;
         }}
         div[data-testid="stFormSubmitButton"] button {{
-            background-color: #00C853 !important;
+            background-color: #00d592 !important;
             color: #0E0E0E !important;
             font-weight: 600 !important;
             width: 100% !important;
@@ -196,12 +196,12 @@ def show_login_page() -> None:
                     justify-content: flex-start !important;
                 }
                 div[data-testid="stElementContainer"]:has(#forgot-pwd-anchor) + div[data-testid="stElementContainer"] button:hover {
-                    color: #00C853 !important;
+                    color: #00d592 !important;
                     text-decoration: underline !important;
                     background: transparent !important;
                 }
                 div[data-testid="stElementContainer"]:has(#forgot-pwd-anchor) + div[data-testid="stElementContainer"] button:focus {
-                    color: #00C853 !important;
+                    color: #00d592 !important;
                     background: transparent !important;
                 }
                 </style>

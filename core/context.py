@@ -174,7 +174,7 @@ def render_cargo_badge(title: str, subtitle: str) -> None:
 
     cargo_labels = {
         "ceo":      ('<i class="bi bi-shield-fill-check"></i> CEO · Acesso Total',   "#FFD700", "#1a1500"),
-        "head":     (f'<i class="bi bi-bullseye"></i> Head · Squad {squad or "—"}',  "#00C853", "#001a0a"),
+        "head":     (f'<i class="bi bi-bullseye"></i> Head · Squad {squad or "—"}',  "#00d592", "#001a0a"),
         "analista": ('<i class="bi bi-bar-chart-fill"></i> Analista · Meus Projetos', "#3B82F6", "#00102a"),
     }
     badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
@@ -189,7 +189,7 @@ def render_cargo_badge(title: str, subtitle: str) -> None:
 <div class="glass-card highlight" style="margin-bottom:20px;">
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
 <div>
-<h3 style="margin:0 0 4px 0; color:#00C853;">{title}</h3>
+<h3 style="margin:0 0 4px 0; color:#00d592;">{title}</h3>
 <p style="margin:0; color:#6b7280; font-size:0.85rem;">{subtitle}</p>
 </div>
 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
