@@ -36,7 +36,7 @@ from core.sheets import (
 ALAVANCAS = [
     {
         "key":    "Custo por Sessão",
-        "icon":   '<i class="bi bi-display" style="color:#00C853;"></i>',
+        "icon":   '<i class="bi bi-display" style="color:#00d592;"></i>',
         "label":  "Custo por Sessão",
         "hint":   "CPS",
         "tipo":   "brl",
@@ -302,14 +302,14 @@ def _render_alavancas(dados: dict) -> None:
             else:
                 positivo = diff >= 0   # maior receita/conversão = bom
 
-            delta_color = "#00C853" if positivo else "#EF4444"
+            delta_color = "#00d592" if positivo else "#EF4444"
             seta        = "▲" if diff >= 0 else "▼"
             delta_str   = f"{seta} {abs(pct):.1f}% vs Projetado".replace(".", ",")
 
         with col:
             html_card = f"""
 <div class="glass-card" style="text-align:center; padding:28px 20px; position:relative; overflow:hidden;">
-<div style="position:absolute; top:-30px; right:-30px; width:90px; height:90px; background:radial-gradient(circle, rgba(0,200,83,0.08) 0%, transparent 70%); border-radius:50%;"></div>
+<div style="position:absolute; top:-30px; right:-30px; width:90px; height:90px; background:radial-gradient(circle, rgba(0,213,146,0.08) 0%, transparent 70%); border-radius:50%;"></div>
 <div style="font-size:1.8rem; margin-bottom:6px;">{alav['icon']}</div>
 <p style="color:#6b7280; font-size:0.7rem; letter-spacing:1.5px; margin-bottom:12px; font-weight:600;">{alav['label'].upper()}</p>
 <p style="font-size:2.2rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-1px;">{val_str}</p>
@@ -342,9 +342,9 @@ def _render_pacing(dados: dict, mes_sel: str) -> None:
 
     # Cores e textos
     if on_track is True:
-        status_color = "#00C853"
-        status_bg    = "rgba(0,200,83,0.08)"
-        status_bdr   = "rgba(0,200,83,0.35)"
+        status_color = "#00d592"
+        status_bg    = "rgba(0,213,146,0.08)"
+        status_bdr   = "rgba(0,213,146,0.35)"
         status_icon  = '<i class="bi bi-check-circle-fill"></i>'
         status_text  = "Em Ritmo"
     elif on_track is False:
@@ -421,7 +421,7 @@ def _render_resumo_financeiro(dados: dict) -> None:
     col_rec, col_inv = st.columns(2, gap="medium")
 
     resumo_items = [
-        (col_rec, '<i class="bi bi-cash-coin" style="font-size:1.2rem; color:#00C853;"></i>', "Receita Faturada"),
+        (col_rec, '<i class="bi bi-cash-coin" style="font-size:1.2rem; color:#00d592;"></i>', "Receita Faturada"),
         (col_inv, '<i class="bi bi-graph-up" style="font-size:1.2rem; color:#3B82F6;"></i>', "Investimento Total"),
     ]
 
@@ -437,7 +437,7 @@ def _render_resumo_financeiro(dados: dict) -> None:
         if realiz is not None and projet and projet > 0:
             ating = realiz / projet
             ating_str   = f"{ating * 100:.1f}%".replace(".", ",")
-            ating_color = "#00C853" if ating >= 0.8 else "#EF4444"
+            ating_color = "#00d592" if ating >= 0.8 else "#EF4444"
 
         with col:
             html_resumo = f"""

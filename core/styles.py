@@ -73,7 +73,7 @@ def apply_global_styles():
 
             /* ── Section Labels (NAVEGAÇÃO, CLIENTES, etc.) ── */
             .sidebar-section-label {
-                color: #00C853;
+                color: #00d592;
                 font-size: 0.62rem;
                 font-weight: 700;
                 letter-spacing: 2.5px;
@@ -124,7 +124,7 @@ def apply_global_styles():
 
             /* ── Selectbox na sidebar (dropdown de clientes) ── */
             [data-testid="stSidebar"] [data-testid="stSelectbox"] label {
-                color: #00C853 !important;
+                color: #00d592 !important;
                 font-size: 0.62rem !important;
                 font-weight: 700 !important;
                 letter-spacing: 2.5px !important;
@@ -179,7 +179,7 @@ def apply_global_styles():
                 margin: 0 0 10px 0;
                 font-size: 0.95rem;
                 font-weight: 600;
-                color: #00C853;
+                color: #00d592;
                 letter-spacing: 0.3px;
             }
 
@@ -246,15 +246,15 @@ def apply_global_styles():
 
             .sidebar-nav-item.active {
                 background: rgba(0, 200, 83, 0.08);
-                border-left: 3px solid #00C853;
+                border-left: 3px solid #00d592;
             }
 
             .sidebar-nav-item.active .nav-icon {
-                color: #00C853;
+                color: #00d592;
             }
 
             .sidebar-nav-item.active .nav-label {
-                color: #00C853;
+                color: #00d592;
                 font-weight: 600;
             }
 
@@ -270,7 +270,7 @@ def apply_global_styles():
             /* ── Em Breve Badge ── */
             .badge-em-breve {
                 background: rgba(0, 200, 83, 0.12);
-                color: #00C853;
+                color: #00d592;
                 border-radius: 8px;
                 padding: 1px 7px;
                 font-size: 0.55rem;

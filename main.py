@@ -64,8 +64,8 @@ hide_st_style = """
             
             [data-testid="collapsedControl"] svg,
             [data-testid="stSidebarCollapsedControl"] svg {
-                fill: #00C853 !important; /* Força a cor Verde Perfor na setinha SVG */
-                color: #00C853 !important;
+                fill: #00d592 !important; /* Força a cor Verde Perfor na setinha SVG */
+                color: #00d592 !important;
             }
 
             /* 4. Esconde APENAS OS ÍCONES da Toolbar no Canto Superior Direito (Deploy, Fork) */
@@ -134,8 +134,8 @@ hide_st_style = """
             [data-testid="stSidebar"] .stButton > button:focus,
             [data-testid="stSidebar"] .stButton > button:active {
                 background: rgba(0, 200, 83, 0.08) !important;
-                border-left-color: #00C853 !important;
-                color: #00C853 !important;
+                border-left-color: #00d592 !important;
+                color: #00d592 !important;
                 font-weight: 600 !important;
             }
 
@@ -153,7 +153,7 @@ hide_st_style = """
             }
 
             [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-                color: #00C853 !important;
+                color: #00d592 !important;
                 background: rgba(0, 200, 83, 0.04) !important;
                 border-left-color: rgba(0, 200, 83, 0.3) !important;
             }
@@ -212,7 +212,7 @@ def render_header():
             border-radius: 50% !important;
             background: rgba(18, 18, 18, 0.6) !important;
             backdrop-filter: blur(10px) !important;
-            border: 2px solid #00C853 !important;
+            border: 2px solid #00d592 !important;
             padding: 0 !important;
             margin: 0 !important;
             display: flex !important;
@@ -224,7 +224,7 @@ def render_header():
         
         /* 4. A inicial dentro do botão */
         div[data-testid="stPopover"] > div > button p {{
-            color: #00C853 !important;
+            color: #00d592 !important;
             font-weight: 700 !important;
             font-family: 'Inter', sans-serif !important;
             font-size: 18px !important;
@@ -282,7 +282,7 @@ def render_header():
         cargo_display = {"ceo": "CEO", "head": "Head", "analista": "Analista"}.get(cargo, cargo)
         st.markdown(f"""
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <div style="width: 36px; height: 36px; border-radius: 50%; background: #00C853; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Lexend', sans-serif;">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: #00d592; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Lexend', sans-serif;">
                     {inicial}
                 </div>
                 <div>
@@ -399,9 +399,9 @@ def _render_sidebar_project():
     st.markdown(f"""
     <div class="project-header">
         <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:36px; height:36px; border-radius:10px; background:rgba(0,200,83,0.10);
-                        border:1px solid rgba(0,200,83,0.20); display:flex; align-items:center;
-                        justify-content:center; font-weight:700; color:#00C853; font-size:0.95rem; flex-shrink:0;">
+            <div style="width:36px; height:36px; border-radius:10px; background:rgba(0,213,146,0.10);
+                        border:1px solid rgba(0,213,146,0.20); display:flex; align-items:center;
+                        justify-content:center; font-weight:700; color:#00d592; font-size:0.95rem; flex-shrink:0;">
                 {inicial}
             </div>
             <div>
@@ -561,9 +561,9 @@ elif nivel == "projeto":
         _nome = get_project_display_name(projeto) if projeto else "—"
         st.markdown(
             f"""<div class="glass-card" style="text-align:center; padding:48px 32px;">
-                <div style="font-size:2.5rem; margin-bottom:16px; color:#00C853;"><i class="bi bi-lightbulb-fill"></i></div>
+                <div style="font-size:2.5rem; margin-bottom:16px; color:#00d592;"><i class="bi bi-lightbulb-fill"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
-                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00C853;">{_nome}</strong><br>
+                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00d592;">{_nome}</strong><br>
                 Em breve: análises estratégicas e alertas de performance.</p>
             </div>""",
             unsafe_allow_html=True,
@@ -579,9 +579,9 @@ elif nivel == "projeto":
         _nome = get_project_display_name(projeto) if projeto else "—"
         st.markdown(
             f"""<div class="glass-card" style="text-align:center; padding:48px 32px;">
-                <div style="font-size:2.5rem; margin-bottom:16px; color:#00C853;"><i class="bi bi-wallet2"></i></div>
+                <div style="font-size:2.5rem; margin-bottom:16px; color:#00d592;"><i class="bi bi-wallet2"></i></div>
                 <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
-                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00C853;">{_nome}</strong><br>
+                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00d592;">{_nome}</strong><br>
                 Em breve: MRR, churn, LTV e projeções de receita.</p>
             </div>""",
             unsafe_allow_html=True,
