@@ -103,23 +103,24 @@ hide_st_style = """
                 margin-bottom: -2rem !important;
             }
 
-            /* ── Estilo dos botões de navegação na sidebar (transparentes) ── */
+            /* ── Estilo dos botões de navegação na sidebar ── */
             [data-testid="stSidebar"] .stButton > button {
                 background: transparent !important;
                 border: none !important;
-                color: #D1D5DB !important;
+                border-left: 3px solid transparent !important;
+                color: #9CA3AF !important;
                 text-align: left !important;
-                padding: 10px 14px !important;
-                font-size: 0.88rem !important;
+                padding: 8px 14px 8px 16px !important;
+                font-size: 0.84rem !important;
                 font-weight: 400 !important;
                 font-family: 'Inter', sans-serif !important;
-                border-radius: 10px !important;
+                border-radius: 0 8px 8px 0 !important;
                 width: 100% !important;
                 display: flex !important;
                 justify-content: flex-start !important;
                 box-shadow: none !important;
                 transition: all 0.2s ease !important;
-                margin: 0 !important;
+                margin: 1px 0 !important;
                 min-height: 0 !important;
                 line-height: 1.4 !important;
             }
@@ -127,23 +128,34 @@ hide_st_style = """
             [data-testid="stSidebar"] .stButton > button:hover {
                 background: rgba(255, 255, 255, 0.04) !important;
                 color: #FAFAFA !important;
+                border-left-color: rgba(0, 200, 83, 0.3) !important;
+            }
+
+            [data-testid="stSidebar"] .stButton > button:focus,
+            [data-testid="stSidebar"] .stButton > button:active {
+                background: rgba(0, 200, 83, 0.08) !important;
+                border-left-color: #00C853 !important;
+                color: #00C853 !important;
+                font-weight: 600 !important;
             }
 
             /* Botão de voltar */
             [data-testid="stSidebar"] .stButton > button[kind="primary"] {
                 background: transparent !important;
                 border: none !important;
-                color: #6b7280 !important;
-                font-size: 0.82rem !important;
-                padding: 10px 14px !important;
-                border-top: 1px solid rgba(255,255,255,0.06) !important;
+                border-left: 3px solid transparent !important;
+                color: #4b5563 !important;
+                font-size: 0.78rem !important;
+                padding: 10px 14px 10px 16px !important;
+                border-top: 1px solid rgba(255,255,255,0.04) !important;
                 border-radius: 0 !important;
-                margin-top: 12px !important;
+                margin-top: 16px !important;
             }
 
             [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
                 color: #00C853 !important;
-                background: rgba(0, 200, 83, 0.05) !important;
+                background: rgba(0, 200, 83, 0.04) !important;
+                border-left-color: rgba(0, 200, 83, 0.3) !important;
             }
 
             </style>
@@ -293,22 +305,23 @@ render_header()
 def _render_sidebar_agency():
     """Sidebar nível Agência: Visão Geral, Squads expandíveis, CEO Panel."""
     cargo = get_user_cargo()
+    pagina = get_active_page()
 
-    # ── Menu Principal ────────────────────────────────────────────────────
-    if st.button("Visão Geral", key="nav_visao_geral", use_container_width=True):
+    # ── NAVEGAÇÃO ─────────────────────────────────────────────────────────
+    st.markdown('<p class="sidebar-section-label">NAVEGAÇÃO</p>', unsafe_allow_html=True)
+
+    if st.button("📊  Visão Geral", key="nav_visao_geral", use_container_width=True):
         set_page("Visão Geral")
         st.rerun()
 
-    # ── SQUADS ────────────────────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">SQUADS</p>', unsafe_allow_html=True)
-
+    # ── SQUADS / CLIENTES ─────────────────────────────────────────────────
     squads = get_squads()
     if squads:
+        st.markdown('<p class="sidebar-section-label">SQUADS</p>', unsafe_allow_html=True)
         for squad_name in squads:
             projetos_squad = get_projects_by_squad(squad_name)
 
-            with st.expander(f"{squad_name}", expanded=False):
-                # Botão para ver o dashboard do squad
+            with st.expander(f"🎯  {squad_name}", expanded=False):
                 if st.button(
                     f"Dashboard do Squad",
                     key=f"squad_dash_{squad_name}",
@@ -318,7 +331,6 @@ def _render_sidebar_agency():
                     set_page("Squad Dashboard")
                     st.rerun()
 
-                # Lista de clientes dentro do squad
                 for p in projetos_squad:
                     nome = get_project_display_name(p)
                     if st.button(
@@ -328,7 +340,7 @@ def _render_sidebar_agency():
                     ):
                         navigate_to_project(p)
     else:
-        # Analistas sem squads — lista projetos direto
+        st.markdown('<p class="sidebar-section-label">CLIENTES</p>', unsafe_allow_html=True)
         projetos = get_all_projects()
         for p in projetos:
             nome = get_project_display_name(p)
@@ -339,21 +351,33 @@ def _render_sidebar_agency():
             ):
                 navigate_to_project(p)
 
-    # ── CEO Panel ─────────────────────────────────────────────────────────
+    # ── GESTÃO (CEO) ──────────────────────────────────────────────────────
     if cargo == "ceo":
         st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
 
-        if st.button("CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
+        if st.button("🛡️  CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
             set_page("CEO Dashboard")
             st.rerun()
 
-    # ── Em Breve ──────────────────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">EM BREVE</p>', unsafe_allow_html=True)
+    # ── SISTEMA ───────────────────────────────────────────────────────────
+    st.markdown('<p class="sidebar-section-label">SISTEMA</p>', unsafe_allow_html=True)
     st.markdown("""
-    <div style="padding: 4px 14px;">
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-calendar3" style="margin-right:6px; font-size:0.85rem;"></i>Calendário</p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-chat-dots" style="margin-right:6px; font-size:0.85rem;"></i>Reuniões</p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-bell" style="margin-right:6px; font-size:0.85rem;"></i>Notificações</p>
+    <div style="padding: 2px 8px;">
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-calendar3 nav-icon"></i>
+            <span class="nav-label">Calendário</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-chat-dots nav-icon"></i>
+            <span class="nav-label">Reuniões</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-bell nav-icon"></i>
+            <span class="nav-label">Notificações</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -369,19 +393,20 @@ def _render_sidebar_project():
     categoria = projeto.get("nicho") or projeto.get("categoria") or ""
     squad = projeto.get("squad") or ""
     inicial = nome[0].upper() if nome else "?"
+    pagina = get_active_page()
 
     # ── Header do Projeto ─────────────────────────────────────────────────
     st.markdown(f"""
     <div class="project-header">
         <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:38px; height:38px; border-radius:10px; background:rgba(0,200,83,0.12);
-                        border:1px solid rgba(0,200,83,0.25); display:flex; align-items:center;
-                        justify-content:center; font-weight:700; color:#00C853; font-size:1rem; flex-shrink:0;">
+            <div style="width:36px; height:36px; border-radius:10px; background:rgba(0,200,83,0.10);
+                        border:1px solid rgba(0,200,83,0.20); display:flex; align-items:center;
+                        justify-content:center; font-weight:700; color:#00C853; font-size:0.95rem; flex-shrink:0;">
                 {inicial}
             </div>
             <div>
                 <p class="project-name">{nome}</p>
-                <p class="project-category">{categoria}{(' · ' + squad) if squad else ''}</p>
+                <p class="project-category">· {categoria}{(' · ' + squad) if squad else ''}</p>
             </div>
         </div>
     </div>
@@ -410,15 +435,27 @@ def _render_sidebar_project():
     st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="padding: 4px 14px;">
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-kanban" style="margin-right:6px; font-size:0.85rem;"></i>Planejamento <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-calendar3" style="margin-right:6px; font-size:0.85rem;"></i>Calendário <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
-        <p style="color:#374151; font-size:0.78rem; margin:6px 0;"><i class="bi bi-journal-text" style="margin-right:6px; font-size:0.85rem;"></i>Reuniões <span style="background:rgba(0,200,83,0.15); color:#00C853; border-radius:8px; padding:1px 6px; font-size:0.6rem; margin-left:4px;">Em Breve</span></p>
+    <div style="padding: 2px 8px;">
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-kanban nav-icon"></i>
+            <span class="nav-label">Planejamento</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-calendar3 nav-icon"></i>
+            <span class="nav-label">Calendário</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
+        <div class="sidebar-nav-item disabled">
+            <i class="bi bi-journal-text nav-icon"></i>
+            <span class="nav-label">Reuniões</span>
+            <span class="badge-em-breve">Em Breve</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
     # ── Botão Voltar ──────────────────────────────────────────────────────
-    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True)
     if st.button("← Voltar para a Agência", key="nav_back_agency", type="primary", use_container_width=True):
         navigate_to_agency()
 
@@ -436,7 +473,7 @@ with st.sidebar:
     if _logo_b64:
         st.markdown(
             f'<img src="data:image/png;base64,{_logo_b64}" '
-            'style="width:160px; display:block; margin-top:5px; margin-bottom:20px; margin-left:15px;">',
+            'style="width:150px; display:block; margin-top:10px; margin-bottom:24px; margin-left:16px;">',
             unsafe_allow_html=True,
         )
 
@@ -449,9 +486,9 @@ with st.sidebar:
         _render_sidebar_project()
 
     # Rodapé da sidebar
-    st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:40px;'></div>", unsafe_allow_html=True)
     st.markdown(
-        "<p style='color:#374151; font-size:0.65rem; text-align:center;"
+        "<p style='color:#1f2937; font-size:0.6rem; text-align:center; "
         "letter-spacing:0.5px;'>© 2026 Perfor Agency · v2.0</p>",
         unsafe_allow_html=True,
     )
