@@ -79,7 +79,7 @@ def apply_global_styles():
                 font-weight: 700;
                 letter-spacing: 1.2px;
                 text-transform: uppercase;
-                margin: 28px 0 10px 16px;
+                margin: 40px 0 10px 16px;
                 padding: 0;
             }
 

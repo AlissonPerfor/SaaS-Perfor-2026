@@ -19,7 +19,7 @@ def format_money_full(value: Optional[float]) -> str:
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def render_report() -> None:
-    render_cargo_badge(
+    col_right = render_cargo_badge(
         "✦ Reports",
         "Geração automática de Feedback de Resultados"
     )
@@ -40,8 +40,7 @@ def render_report() -> None:
     if hoje.day <= 5 and hoje.month > 1:
         mes_padrao_idx = hoje.month - 2
 
-    _, _, col_mes = st.columns([2, 2, 1])
-    with col_mes:
+    with col_right:
         mes_sel = st.selectbox(
             "Mês",
             options=MESES_ABREV,

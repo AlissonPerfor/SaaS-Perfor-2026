@@ -69,7 +69,7 @@ def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via 
     - Se projeto ativo: Mostra dados apenas dele.
     - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
     """
-    render_cargo_badge(title, subtitle)
+    col_right = render_cargo_badge(title, subtitle)
 
     projetos = get_all_projects()
     if not projetos:
@@ -77,7 +77,7 @@ def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via 
         return
 
     # ── Seletor de Mês ────────────────────────────────────────────────────────
-    mes_sel = _render_month_selector()
+    mes_sel = _render_month_selector(col_right)
 
     # ── Roteamento por contexto ───────────────────────────────────────────────
     projeto = get_active_project()
@@ -92,22 +92,20 @@ def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via 
 
 # ── Seletor de Mês ───────────────────────────────────────────────────────────
 
-def _render_month_selector() -> str:
-    """Renderiza apenas o seletor de mês (projeto agora vive na sidebar)."""
+def _render_month_selector(container) -> str:
+    """Renderiza apenas o seletor de mês na coluna fornecida."""
     hoje = date.today()
     mes_padrao_idx = hoje.month - 1
     if hoje.day <= 5 and hoje.month > 1:
         mes_padrao_idx = hoje.month - 2
 
-    _, _, col_mes = st.columns([2, 2, 1])
-    with col_mes:
+    with container:
         mes_sel = st.selectbox(
             "Mês",
             options=MESES_ABREV,
             index=mes_padrao_idx,
             key="sel_mes_dashboard",
         )
-    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     return mes_sel
 
 
