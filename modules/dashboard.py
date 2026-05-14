@@ -60,7 +60,7 @@ ALAVANCAS = [
     },
     {
         "key":    "ROAS Pago",
-        "icon":   '<i class="bi bi-bullseye" style="color:#F59E0B;"></i>',
+        "icon":   '<i class="bi bi-rocket-takeoff" style="color:#F59E0B;"></i>',
         "label":  "ROAS Pago",
         "hint":   "ROAS",
         "tipo":   "roas",
