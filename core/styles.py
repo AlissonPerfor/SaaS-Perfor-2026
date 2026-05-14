@@ -67,7 +67,8 @@ def apply_global_styles():
                 border-right: 1px solid rgba(0, 200, 83, 0.08) !important;
             }
 
-            [data-testid="stSidebar"] > div:first-child {
+            [data-testid="stSidebar"] > div:first-child,
+            [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
                 padding-top: 0 !important;
             }
 

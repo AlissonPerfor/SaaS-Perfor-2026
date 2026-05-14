@@ -262,7 +262,7 @@ def render_header():
 
         /* 7. Estilo GLOBAL do menu Popover quando aberto */
         div[data-testid="stPopoverBody"] {{
-            background: #121212 !important; /* Cor sólida para evitar sobreposição de transparências */
+            background: #0E0E0E !important; /* Cor sólida igual ao app */
             border: 1px solid rgba(0, 200, 83, 0.3) !important;
             border-radius: 16px !important;
             padding: 16px !important;
@@ -272,7 +272,8 @@ def render_header():
 
         /* Força fundo transparente nos containers internos do popover para evitar a borda dupla/duas cores */
         div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"],
-        div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] > div {{
+        div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] > div,
+        div[data-testid="stPopoverBody"] > div {{
             background: transparent !important;
         }}
         
@@ -512,7 +513,7 @@ with st.sidebar:
     if _logo_b64:
         st.markdown(
             f'<img src="data:image/png;base64,{_logo_b64}" '
-            'style="width:160px; display:block; margin-top:10px; margin-bottom:28px; margin-left:16px;">',
+            'style="width:115px; display:block; margin-top:-20px; margin-bottom:28px; margin-left:4px;">',
             unsafe_allow_html=True,
         )
 
