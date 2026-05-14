@@ -183,10 +183,6 @@ def render_report() -> None:
     
     st.markdown("""
     <div class="glass-card" style="padding: 24px;">
-        <h4 style="color:#FAFAFA; margin-top:0;">Relatório Gerado</h4>
-        <p style="color:#9CA3AF; font-size:0.85rem; margin-bottom: 16px;">
-            Copie o texto abaixo clicando no ícone no canto superior direito do quadro.
-        </p>
     """, unsafe_allow_html=True)
     
     st.code(report_text, language="markdown")
