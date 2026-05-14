@@ -176,14 +176,10 @@ def render_report() -> None:
 ➡️ Taxa de Conversão: *{cvr_real}* | Meta: *{cvr_meta}*{cvr_delta} {cvr_emj}
 ➡️ Ticket Médio: *{tmd_real}* | Meta: *{tmd_meta}*{tmd_delta} {tmd_emj}
 
-📝 Análise de Cenário e Próximos Passos:
+📝 *Análise de Cenário e Próximos Passos:*
 '''
 
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="glass-card" style="padding: 24px;">
-    """, unsafe_allow_html=True)
     
     st.code(report_text, language="markdown")
     
@@ -191,5 +187,3 @@ def render_report() -> None:
     if st.button("🔄 Atualizar Dados Manualmente", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
