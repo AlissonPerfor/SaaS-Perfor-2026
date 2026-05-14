@@ -118,6 +118,7 @@ hide_st_style = """
                 width: 100% !important;
                 display: flex !important;
                 justify-content: flex-start !important;
+                align-items: center !important;
                 box-shadow: none !important;
                 transition: all 0.2s ease !important;
                 margin: 1px 0 !important;
@@ -125,11 +126,19 @@ hide_st_style = """
                 line-height: 1.4 !important;
             }
 
+            [data-testid="stSidebar"] .stButton > button * {
+                text-align: left !important;
+                justify-content: flex-start !important;
+                margin-left: 0 !important;
+            }
+
             [data-testid="stSidebar"] .stButton > button p,
             [data-testid="stSidebar"] .stButton > button div[data-testid="stMarkdownContainer"] {
                 text-align: left !important;
                 width: 100% !important;
                 margin: 0 !important;
+                display: flex !important;
+                justify-content: flex-start !important;
             }
 
             [data-testid="stSidebar"] .stButton > button:hover {
