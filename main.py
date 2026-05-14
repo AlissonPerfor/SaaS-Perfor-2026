@@ -417,6 +417,7 @@ def _render_sidebar_project():
 
     modules_perf = [
         ("GPS Dashboard", "nav_gps"),
+        ("Reports Automatizados", "nav_report"),
         ("Brain", "nav_brain"),
         ("Criativos", "nav_criativos"),
         ("Financeiro", "nav_financeiro"),
@@ -554,6 +555,10 @@ elif nivel == "projeto":
     if pagina_ativa == "GPS Dashboard":
         from modules.dashboard import render_visao_geral
         render_visao_geral()
+
+    elif pagina_ativa == "Reports Automatizados":
+        from modules.report_generator import render_report
+        render_report()
 
     elif pagina_ativa == "Brain":
         render_cargo_badge("✦ Brain — Estratégia & Insights", "Análises estratégicas, recomendações de budget e alertas de performance.")

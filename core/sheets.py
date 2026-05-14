@@ -34,13 +34,17 @@ METRICAS = [
     "Custo por Sessão",
     "Ticket Médio",
     "Taxa de Conversão",
+    "Receita Captada",
+    "% de Pagamento",
+    "Pedidos Pagos",
+    "ROAS Pago",
 ]
 
 # Métricas exibidas como porcentagem
-METRICAS_PCT = {"Taxa de Conversão"}
+METRICAS_PCT = {"Taxa de Conversão", "% de Pagamento"}
 
 # Métricas exibidas como moeda BRL
-METRICAS_BRL = {"Receita Faturada", "Investimento Total", "Custo por Sessão", "Ticket Médio"}
+METRICAS_BRL = {"Receita Faturada", "Investimento Total", "Custo por Sessão", "Ticket Médio", "Receita Captada"}
 
 
 # ── Autenticação (cacheada — uma instância por sessão) ────────────────────────
@@ -211,6 +215,8 @@ def _parse_valor(raw: str) -> Optional[float]:
         .replace("R$", "")
         .replace("%", "")
         .replace("\xa0", "")   # non-breaking space
+        .replace("x", "")      # ROAS
+        .replace("X", "")      # ROAS
         .strip()
     )
 
