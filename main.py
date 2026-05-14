@@ -262,13 +262,18 @@ def render_header():
 
         /* 7. Estilo GLOBAL do menu Popover quando aberto */
         div[data-testid="stPopoverBody"] {{
-            background: rgba(20, 20, 20, 0.85) !important;
-            backdrop-filter: blur(10px) saturate(180%) !important;
-            border: 1px solid rgba(0, 200, 83, 0.4) !important;
+            background: #121212 !important; /* Cor sólida para evitar sobreposição de transparências */
+            border: 1px solid rgba(0, 200, 83, 0.3) !important;
             border-radius: 16px !important;
-            padding: 15px !important;
+            padding: 16px !important;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
-            min-width: 200px !important;
+            min-width: 210px !important;
+        }}
+
+        /* Força fundo transparente nos containers internos do popover para evitar a borda dupla/duas cores */
+        div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"],
+        div[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] > div {{
+            background: transparent !important;
         }}
         
         /* 8. Botão Sair transparente dentro do popover */
@@ -293,16 +298,33 @@ def render_header():
         </style>
     """, unsafe_allow_html=True)
     
+    user_data = st.session_state.get("user_data") or {}
+    email_user = user_data.get("email", "")
+    nome_base = user_data.get("nome", "Usuário")
+    
+    # Mapeamento para garantir o sobrenome correto
+    mapping_nomes = {
+        "alisson": "Álisson Theobald",
+        "leonardo": "Leonardo Gomes",
+        "luigi": "Luigi Linhares",
+        "natalia": "Natália Ribeiro",
+        "natália": "Natália Ribeiro"
+    }
+    
+    chave_nome = email_user.split("@")[0].lower() if email_user else nome_base.lower()
+    nome_exibicao = mapping_nomes.get(chave_nome, nome_base)
+    inicial = nome_exibicao[0].upper() if nome_exibicao else "U"
+
     with st.popover(inicial):
         cargo = get_user_cargo()
         cargo_display = {"ceo": "CEO", "head": "Head", "analista": "Analista"}.get(cargo, cargo)
         st.markdown(f"""
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <div style="width: 36px; height: 36px; border-radius: 50%; background: #00d592; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Lexend', sans-serif;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: #00d592; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 16px; font-family: 'Inter', sans-serif; flex-shrink: 0;">
                     {inicial}
                 </div>
                 <div>
-                    <span style="color: #fff; font-weight: 500; font-family: 'Lexend', sans-serif; font-size: 15px; display:block;">{nome}</span>
+                    <span style="color: #fff; font-weight: 500; font-family: 'Inter', sans-serif; font-size: 15px; display:block;">{nome_exibicao}</span>
                     <span style="color: #6b7280; font-size: 0.72rem;">{cargo_display}</span>
                 </div>
             </div>
