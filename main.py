@@ -432,8 +432,8 @@ def _render_sidebar_project():
     st.markdown('<p class="sidebar-section-label">PERFORMANCE</p>', unsafe_allow_html=True)
 
     modules_perf = [
-        ("GPS Dashboard", "nav_gps"),
-        ("Reports Automatizados", "nav_report"),
+        ("Dashboard", "nav_gps"),
+        ("Reports", "nav_report"),
         ("Brain", "nav_brain"),
         ("Criativos", "nav_criativos"),
         ("Financeiro", "nav_financeiro"),
@@ -542,11 +542,11 @@ if nivel == "agencia":
 
 elif nivel == "projeto":
     # ── Páginas do nível projeto ──────────────────────────────────────────
-    if pagina_ativa == "GPS Dashboard":
+    if pagina_ativa == "Dashboard":
         from modules.dashboard import render_visao_geral
         render_visao_geral()
 
-    elif pagina_ativa == "Reports Automatizados":
+    elif pagina_ativa == "Reports":
         from modules.report_generator import render_report
         render_report()
 

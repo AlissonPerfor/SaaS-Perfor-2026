@@ -73,7 +73,7 @@ def navigate_to_project(projeto: dict) -> None:
     """Navega para o nível de projeto — abre a sidebar do projeto."""
     st.session_state.projeto_ativo = projeto
     st.session_state.nivel_navegacao = "projeto"
-    st.session_state.pagina_ativa = "GPS Dashboard"
+    st.session_state.pagina_ativa = "Dashboard"
     st.rerun()
 
 

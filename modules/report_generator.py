@@ -20,7 +20,7 @@ def format_money_full(value: Optional[float]) -> str:
 
 def render_report() -> None:
     render_cargo_badge(
-        "✦ Reports Automatizados",
+        "✦ Reports",
         "Geração automática de Feedback de Resultados"
     )
 
