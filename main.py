@@ -513,7 +513,7 @@ with st.sidebar:
     if _logo_b64:
         st.markdown(
             f'<img src="data:image/png;base64,{_logo_b64}" '
-            'style="width:115px; display:block; margin-top:-20px; margin-bottom:28px; margin-left:4px;">',
+            'style="width:115px; display:block; margin-top:-30px; margin-bottom:20px; margin-left:12px;">',
             unsafe_allow_html=True,
         )
 

@@ -163,42 +163,21 @@ def get_project_display_name(projeto: dict) -> str:
 
 # ── Badge de Cargo (centralizado) ────────────────────────────────────────────
 
-def render_cargo_badge(title: str, subtitle: str) -> None:
+def render_cargo_badge(title: str, subtitle: str = "Dados em tempo real via Google Sheets"):
     """
-    Renderiza o badge de cargo + título da seção em um glass-card.
-    Versão centralizada — substitui as cópias duplicadas nos módulos.
-    Usa Bootstrap Icons em vez de emojis.
+    Renderiza o cabeçalho dinâmico principal de cada página.
+    Retorna a coluna direita para permitir a injeção de filtros (como o seletor de data).
     """
-    cargo = get_user_cargo()
-    squad = get_user_squad()
-
-    cargo_labels = {
-        "ceo":      ('<i class="bi bi-shield-fill-check"></i> CEO · Acesso Total',   "#FFD700", "#1a1500"),
-        "head":     (f'<i class="bi bi-bullseye"></i> Head · Squad {squad or "—"}',  "#00d592", "#001a0a"),
-        "analista": ('<i class="bi bi-bar-chart-fill"></i> Analista · Meus Projetos', "#3B82F6", "#00102a"),
-    }
-    badge_text, badge_color, badge_bg = cargo_labels.get(cargo, cargo_labels["analista"])
-
-    # Indicador do projeto ativo
-    projeto = get_active_project()
-    projeto_nome = "Todos os Projetos"
-    if projeto:
-        projeto_nome = get_project_display_name(projeto)
-
-    html_badge = f"""
-<div style="margin-bottom:28px;">
-<div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
-<div>
-<h1 style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-0.5px;">{title}</h1>
-<p style="margin:0; color:#6b7280; font-size:0.9rem;">{subtitle}</p>
-</div>
-<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
-<span style="background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:4px 14px; font-size:0.72rem; font-weight:500; letter-spacing:0.3px; white-space:nowrap;"><i class="bi bi-building" style="margin-right:4px;"></i>{projeto_nome}</span>
-<span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; border-radius:20px; padding:4px 14px; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; white-space:nowrap;">{badge_text}</span>
-</div>
-</div>
-<hr style="border:none; border-top:1px solid #1f2937; margin-top:16px;">
-</div>
-"""
-    st.markdown(html_badge, unsafe_allow_html=True)
-
+    col_left, col_right = st.columns([4, 1])
+    
+    with col_left:
+        st.markdown(f"""
+        <div style="margin-bottom:8px;">
+            <h1 style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-0.5px;">{title}</h1>
+            <p style="margin:0; color:#6b7280; font-size:0.9rem;">{subtitle}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown('<hr style="border:none; border-top:1px solid #1f2937; margin-top:8px; margin-bottom:24px;">', unsafe_allow_html=True)
+    
+    return col_right
