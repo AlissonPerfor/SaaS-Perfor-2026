@@ -192,4 +192,9 @@ def render_report() -> None:
     
     st.code(report_text, language="markdown")
     
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    if st.button("🔄 Atualizar Dados Manualmente", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    
     st.markdown("</div>", unsafe_allow_html=True)
