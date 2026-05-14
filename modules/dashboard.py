@@ -63,18 +63,13 @@ ALAVANCAS = [
 
 # ── Função pública principal ──────────────────────────────────────────────────
 
-def render_visao_geral() -> None:
+def render_visao_geral(title="✦ Performance GPS", subtitle="Dados em tempo real via Google Sheets") -> None:
     """
-    Renderiza toda a tela 'Visão Geral':
-    - Badge de cargo (centralizado via core.context)
-    - Seletor de mês
-    - CEO sem projeto selecionado → Visão Agregada
-    - Demais → Visão Individual do projeto ativo
+    Renderiza a Visão Geral de Performance para a agência ou projeto ativo.
+    - Se projeto ativo: Mostra dados apenas dele.
+    - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
     """
-    render_cargo_badge(
-        "✦ Performance GPS",
-        "Dados em tempo real via Google Sheets",
-    )
+    render_cargo_badge(title, subtitle)
 
     projetos = get_all_projects()
     if not projetos:

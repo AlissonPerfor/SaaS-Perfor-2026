@@ -186,17 +186,18 @@ def render_cargo_badge(title: str, subtitle: str) -> None:
         projeto_nome = get_project_display_name(projeto)
 
     html_badge = f"""
-<div class="glass-card highlight" style="margin-bottom:20px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+<div style="margin-bottom:28px;">
+<div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
 <div>
-<h3 style="margin:0 0 4px 0; color:#00d592;">{title}</h3>
-<p style="margin:0; color:#6b7280; font-size:0.85rem;">{subtitle}</p>
+<h1 style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 6px 0; letter-spacing:-0.5px;">{title}</h1>
+<p style="margin:0; color:#6b7280; font-size:0.9rem;">{subtitle}</p>
 </div>
-<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
 <span style="background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:4px 14px; font-size:0.72rem; font-weight:500; letter-spacing:0.3px; white-space:nowrap;"><i class="bi bi-building" style="margin-right:4px;"></i>{projeto_nome}</span>
 <span style="background:{badge_bg}; color:{badge_color}; border:1px solid {badge_color}; border-radius:20px; padding:4px 14px; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; white-space:nowrap;">{badge_text}</span>
 </div>
 </div>
+<hr style="border:none; border-top:1px solid #1f2937; margin-top:16px;">
 </div>
 """
     st.markdown(html_badge, unsafe_allow_html=True)
