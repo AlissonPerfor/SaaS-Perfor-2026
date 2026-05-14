@@ -74,9 +74,9 @@ def apply_global_styles():
             /* ── Section Labels (NAVEGAÇÃO, CLIENTES, etc.) ── */
             .sidebar-section-label {
                 color: #00d592;
-                font-size: 0.62rem;
+                font-size: 0.58rem;
                 font-weight: 700;
-                letter-spacing: 2.5px;
+                letter-spacing: 1.5px;
                 text-transform: uppercase;
                 margin: 28px 0 10px 16px;
                 padding: 0;
@@ -90,14 +90,14 @@ def apply_global_styles():
             }
 
             .project-header .project-name {
-                font-size: 1rem;
+                font-size: 0.85rem;
                 font-weight: 600;
                 color: #FAFAFA;
                 margin: 0 0 2px 0;
             }
 
             .project-header .project-category {
-                font-size: 0.72rem;
+                font-size: 0.65rem;
                 color: #4b5563;
                 margin: 0;
                 font-weight: 400;
@@ -237,7 +237,7 @@ def apply_global_styles():
             }
 
             .sidebar-nav-item .nav-label {
-                font-size: 0.84rem;
+                font-size: 0.78rem;
                 color: #9CA3AF;
                 font-weight: 400;
                 margin: 0;

@@ -110,8 +110,8 @@ hide_st_style = """
                 border-left: 3px solid transparent !important;
                 color: #9CA3AF !important;
                 text-align: left !important;
-                padding: 8px 14px 8px 16px !important;
-                font-size: 0.84rem !important;
+                padding: 6px 14px 6px 16px !important;
+                font-size: 0.78rem !important;
                 font-weight: 400 !important;
                 font-family: 'Inter', sans-serif !important;
                 border-radius: 0 8px 8px 0 !important;
@@ -161,8 +161,8 @@ hide_st_style = """
                 border: none !important;
                 border-left: 3px solid transparent !important;
                 color: #4b5563 !important;
-                font-size: 0.78rem !important;
-                padding: 10px 14px 10px 16px !important;
+                font-size: 0.72rem !important;
+                padding: 8px 14px 8px 16px !important;
                 border-top: 1px solid rgba(255,255,255,0.04) !important;
                 border-radius: 0 !important;
                 margin-top: 16px !important;
@@ -415,9 +415,9 @@ def _render_sidebar_project():
     st.markdown(f"""
     <div class="project-header">
         <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:36px; height:36px; border-radius:10px; background:rgba(0,213,146,0.10);
+            <div style="width:30px; height:30px; border-radius:8px; background:rgba(0,213,146,0.10);
                         border:1px solid rgba(0,213,146,0.20); display:flex; align-items:center;
-                        justify-content:center; font-weight:700; color:#00d592; font-size:0.95rem; flex-shrink:0;">
+                        justify-content:center; font-weight:700; color:#00d592; font-size:0.85rem; flex-shrink:0;">
                 {inicial}
             </div>
             <div>
@@ -490,7 +490,7 @@ with st.sidebar:
     if _logo_b64:
         st.markdown(
             f'<img src="data:image/png;base64,{_logo_b64}" '
-            'style="width:150px; display:block; margin-top:10px; margin-bottom:24px; margin-left:16px;">',
+            'style="width:120px; display:block; margin-top:10px; margin-bottom:24px; margin-left:16px;">',
             unsafe_allow_html=True,
         )
 
