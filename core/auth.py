@@ -24,36 +24,19 @@ def check_login() -> bool:
         st.session_state.logged_in = False
         st.session_state.user_data = None
     
-    # Tenta recuperar sessão ativa do Supabase (útil para mitigar logout no F5 caso o client preserve)
-    if not st.session_state.logged_in:
-        try:
-            session = supabase.auth.get_session()
-            if session:
-                user = session.user
-                nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or user.email.split("@")[0]
-
-                # Busca centralizada de perfil por email (tabela usa IDs numéricos, não UUIDs)
-                perfil = get_user_profile(user.email)
-
-                st.session_state.logged_in = True
-                st.session_state.user_data = {
-                    "id": user.id,
-                    "email": user.email,
-                    "nome": nome.title(),
-                    "cargo": perfil["cargo"],   # ex: 'ceo', 'head', 'analista'
-                    "squad": perfil["squad"]    # ex: 'Cold Hunters', 'Rise Gold', None
-                }
-        except Exception:
-            pass
+    # REMOVIDO: A tentativa de recuperar a sessão via `supabase.auth.get_session()`
+    # foi removida porque o cliente do Supabase é global (`@st.cache_resource`).
+    # Usar isso faz com que a sessão do último usuário a logar no servidor vaze
+    # para todos os novos visitantes (como o bug relatado onde o Luigi entrou
+    # direto na conta do Leonardo).
 
     return st.session_state.logged_in
 
 def logout():
     """Limpa sessão e desloga."""
-    try:
-        supabase.auth.sign_out()
-    except Exception:
-        pass
+    # REMOVIDO: supabase.auth.sign_out() 
+    # O cliente Supabase é global. Fazer sign_out aqui deslogava
+    # o token no servidor, podendo interferir nas queries de outros usuários.
     st.session_state.logged_in = False
     st.session_state.user_data = None
     st.rerun()
