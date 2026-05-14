@@ -46,6 +46,9 @@ METRICAS_PCT = {"Taxa de Conversão", "% de Pagamento"}
 # Métricas exibidas como moeda BRL
 METRICAS_BRL = {"Receita Faturada", "Investimento Total", "Custo por Sessão", "Ticket Médio", "Receita Captada"}
 
+# Métricas exibidas como multiplicador (ROAS)
+METRICAS_ROAS = {"ROAS Pago"}
+
 
 # ── Autenticação (cacheada — uma instância por sessão) ────────────────────────
 
@@ -263,8 +266,17 @@ def fmt_pct(value: Optional[float]) -> str:
     return f"{value:.2f}%".replace(".", ",")
 
 
+def fmt_roas(value: Optional[float]) -> str:
+    """Formata valor como multiplicador (ROAS)."""
+    if value is None:
+        return "—"
+    return f"{value:.2f}x".replace(".", ",")
+
+
 def fmt_metrica(value: Optional[float], metrica: str) -> str:
     """Formata um valor de acordo com o tipo da métrica."""
     if metrica in METRICAS_PCT:
         return fmt_pct(value)
+    if metrica in METRICAS_ROAS:
+        return fmt_roas(value)
     return fmt_brl(value)
