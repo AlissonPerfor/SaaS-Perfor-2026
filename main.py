@@ -125,6 +125,13 @@ hide_st_style = """
                 line-height: 1.4 !important;
             }
 
+            [data-testid="stSidebar"] .stButton > button p,
+            [data-testid="stSidebar"] .stButton > button div[data-testid="stMarkdownContainer"] {
+                text-align: left !important;
+                width: 100% !important;
+                margin: 0 !important;
+            }
+
             [data-testid="stSidebar"] .stButton > button:hover {
                 background: rgba(255, 255, 255, 0.04) !important;
                 color: #FAFAFA !important;
@@ -499,31 +506,6 @@ with st.sidebar:
 # PAINEL PRINCIPAL — Renderiza o conteúdo da página ativa
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Header da página
-_page_title = pagina_ativa
-_page_subtitle = "Performance Intelligence · Perfor Agency"
-
-if nivel == "projeto":
-    projeto = get_active_project()
-    if projeto:
-        _page_subtitle = get_project_display_name(projeto)
-
-st.markdown(
-    f"""
-    <div style='margin-bottom: 32px;'>
-        <h1 style='font-size:2rem; font-weight:700; color:#FAFAFA;
-                   letter-spacing:-0.5px; margin-bottom:4px;'>
-            {_page_title}
-        </h1>
-        <p style='color:#4b5563; font-size:0.9rem; margin:0;'>
-            {_page_subtitle}
-        </p>
-        <hr style='border:none; border-top:1px solid #1f2937; margin-top:16px;'>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ── Roteamento de páginas ─────────────────────────────────────────────────────
 
 if nivel == "agencia":
@@ -539,10 +521,9 @@ if nivel == "agencia":
 
     elif pagina_ativa == "CEO Dashboard":
         if is_ceo():
-            render_cargo_badge("CEO Dashboard", "Visão consolidada de toda a agência.")
             from modules.dashboard import render_visao_geral
             # CEO Dashboard reutiliza a visão agregada
-            render_visao_geral()
+            render_visao_geral(title="CEO Dashboard", subtitle="Visão consolidada de toda a agência.")
         else:
             st.warning("Acesso restrito ao CEO.")
 
