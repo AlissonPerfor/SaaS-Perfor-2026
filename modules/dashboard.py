@@ -58,6 +58,14 @@ ALAVANCAS = [
         "tipo":   "pct",
         "invert": False,  # maior = melhor
     },
+    {
+        "key":    "ROAS Pago",
+        "icon":   '<i class="bi bi-bullseye" style="color:#F59E0B;"></i>',
+        "label":  "ROAS Pago",
+        "hint":   "ROAS",
+        "tipo":   "roas",
+        "invert": False,  # maior = melhor
+    },
 ]
 
 
@@ -224,6 +232,8 @@ def _render_visao_agregada(projetos: list[dict], mes_sel: str) -> None:
     avg_cps = (wp_cps / peso_total) if peso_total > 0 else None
     avg_tmd = (wp_tmd / peso_total) if peso_total > 0 else None
     avg_cvr = (wp_cvr / peso_total) if peso_total > 0 else None
+    avg_roas = (soma_receita_real / soma_invest_real) if soma_invest_real > 0 else None
+    proj_roas = (soma_receita_proj / soma_invest_proj) if soma_invest_proj > 0 else None
 
     dados_agregados = {
         "realizado": {
@@ -232,6 +242,7 @@ def _render_visao_agregada(projetos: list[dict], mes_sel: str) -> None:
             "Custo por Sessão":   avg_cps,
             "Ticket Médio":       avg_tmd,
             "Taxa de Conversão":  avg_cvr,
+            "ROAS Pago":          avg_roas,
         },
         "projetado": {
             "Receita Faturada":   soma_receita_proj or None,
@@ -239,6 +250,7 @@ def _render_visao_agregada(projetos: list[dict], mes_sel: str) -> None:
             "Custo por Sessão":   None,
             "Ticket Médio":       None,
             "Taxa de Conversão":  None,
+            "ROAS Pago":          proj_roas,
         },
         "pacing_mes": pacing_mes,
         "erro": None,
@@ -270,7 +282,7 @@ def _render_alavancas(dados: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    cols = st.columns(3, gap="medium")
+    cols = st.columns(len(ALAVANCAS), gap="medium")
 
     for col, alav in zip(cols, ALAVANCAS):
         key      = alav["key"]
