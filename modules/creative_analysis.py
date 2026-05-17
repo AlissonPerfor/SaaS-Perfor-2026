@@ -79,10 +79,16 @@ def _init_meta_api() -> bool:
         return False
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
     """
-    Busca anúncios no Meta Ads com spend > 0 no período informado.
+    Busca os TOP 20 anúncios por gasto no Meta Ads dentro do período.
+
+    Estratégia de performance:
+      - UMA ÚNICA requisição get_insights(level='ad') na conta inteira
+      - time_range filtra no servidor (sem baixar dados fora do período)
+      - sort=['spend_descending'] + limit=20 retorna apenas os maiores
+      - Só depois busca o criativo de cada um dos 20 (máx. 20 calls extras)
 
     Retorna:
     {
@@ -111,50 +117,52 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
 
         account = AdAccount(account_id)
 
-        # Busca os anúncios com insights (spend) dentro do período
-        ads = account.get_ads(
+        # ── 1) ÚNICA requisição: insights no nível de ad, já ordenados ───
+        insights = account.get_insights(
             fields=[
-                Ad.Field.name,
-                Ad.Field.status,
-                Ad.Field.creative,
+                "ad_id",
+                "ad_name",
+                "spend",
             ],
             params={
-                "effective_status": [
-                    "ACTIVE",
-                    "PAUSED",
-                    "CAMPAIGN_PAUSED",
-                    "ADSET_PAUSED",
+                "level": "ad",
+                "time_range": {"since": since, "until": until},
+                "sort": ["spend_descending"],
+                "limit": 20,
+                "filtering": [
+                    {
+                        "field": "spend",
+                        "operator": "GREATER_THAN",
+                        "value": "0",
+                    }
                 ],
-                "limit": 100,
             },
         )
 
-        for ad in ads:
-            ad_id = ad.get("id")
-            ad_name = ad.get("name", "Sem nome")
-            ad_status = ad.get("status", "UNKNOWN")
+        # ── 2) Para cada insight, busca o criativo (máx. 20 calls) ───────
+        for row in insights:
+            ad_id = row.get("ad_id")
+            ad_name = row.get("ad_name", "Sem nome")
+            spend = float(row.get("spend", 0))
 
-            # Busca os insights (spend) do período para esse anúncio
-            try:
-                insights = ad.get_insights(
-                    fields=["spend"],
-                    params={
-                        "time_range": {"since": since, "until": until},
-                    },
-                )
-                spend = float(insights[0]["spend"]) if insights else 0.0
-            except Exception:
-                spend = 0.0
-
-            # Filtra apenas anúncios com gasto > 0
             if spend <= 0:
                 continue
 
-            # Obtém a URL do criativo (imagem ou vídeo thumbnail)
+            # Busca dados do ad (status + creative id) em uma call
             preview_url = None
             creative_type = "Desconhecido"
+            ad_status = "ACTIVE"
+
             try:
-                creative_data = ad.get("creative", {})
+                ad_obj = Ad(ad_id).api_get(
+                    fields=[
+                        Ad.Field.status,
+                        Ad.Field.creative,
+                    ]
+                )
+                ad_status = ad_obj.get("status", "ACTIVE")
+
+                creative_data = ad_obj.get("creative", {})
                 creative_id = creative_data.get("id") if isinstance(creative_data, dict) else None
 
                 if creative_id:
@@ -165,13 +173,11 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
                             "image_url",
                             "thumbnail_url",
                             "video_id",
-                            "object_type",
                         ]
                     )
                     image_url = creative.get("image_url")
                     thumbnail_url = creative.get("thumbnail_url")
                     video_id = creative.get("video_id")
-                    object_type = creative.get("object_type", "")
 
                     if video_id:
                         creative_type = "Vídeo"
@@ -191,9 +197,6 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
                 "preview_url": preview_url,
                 "creative_type": creative_type,
             })
-
-        # Ordena por gasto decrescente
-        result["ads"].sort(key=lambda x: x["spend"], reverse=True)
 
     except Exception as e:
         result["erro"] = str(e)
