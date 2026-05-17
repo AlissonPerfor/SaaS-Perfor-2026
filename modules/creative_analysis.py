@@ -94,12 +94,15 @@ def _fetch_meta_ads(account_id, since, until):
 
             preview=None; ctype="Imagem"; status="ACTIVE"
             try:
-                ao=Ad(r.get("ad_id")).api_get(fields=["status","creative{image_url,thumbnail_url,video_id}"])
+                ao=Ad(r.get("ad_id")).api_get(fields=["status","creative"])
                 status=ao.get("status","ACTIVE")
-                cr=ao.get("creative") or {}
-                iu=cr.get("image_url"); tu=cr.get("thumbnail_url"); vi=cr.get("video_id")
-                if vi or tu: ctype="Vídeo"; preview=tu or iu
-                else: ctype="Imagem"; preview=iu
+                c_id=ao.get("creative",{}).get("id")
+                if c_id:
+                    from facebook_business.adobjects.adcreative import AdCreative
+                    cr=AdCreative(c_id).api_get(fields=["image_url","thumbnail_url","video_id"])
+                    iu=cr.get("image_url"); tu=cr.get("thumbnail_url"); vi=cr.get("video_id")
+                    if vi or tu: ctype="Vídeo"; preview=iu or tu  # Prioriza iu (high-res)
+                    else: ctype="Imagem"; preview=iu or tu
             except: pass
 
             result["ads"].append({"nome":r.get("ad_name","?"),"status":status,"spend":spend,
@@ -169,7 +172,7 @@ def _render_diagnostico(agg, mes):
 def _render_top_performers(ads):
     if len(ads)<1: return
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#6b7280;font-size:0.72rem;letter-spacing:1.5px;margin-bottom:10px;'><i class='bi bi-stars' style='margin-right:4px;'></i> AXOLY INSIGHTS — Top Performers</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#6b7280;font-size:0.72rem;letter-spacing:1.5px;margin-bottom:10px;'><i class='bi bi-stars' style='margin-right:4px;'></i> PERFOR INSIGHTS — Top Performers</p>", unsafe_allow_html=True)
     df=pd.DataFrame(ads)
     champs=[
         ("🥇 Melhor Gancho","tsr","THUMB STOP RATE",_fmt_pct),
@@ -210,41 +213,41 @@ def _render_ad_cards(ads):
         url=ad.get("preview_url") or _FALLBACK
         with cols[i%5]:
             st.markdown(f"""<div class="glass-card" style="padding:14px; height:100%;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <span style="background:{lc}; color:#000; font-size:0.65rem; font-weight:700; padding:3px 10px; border-radius:12px; letter-spacing:0.5px;">{lbl}</span>
-        <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{tc}</span>
-    </div>
-    
-    <img src="{url}" style="width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
-    
-    <p style="color:#FAFAFA; font-size:0.85rem; font-weight:600; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em;">{ad['nome']}</p>
-    
-    <div style="font-size:0.72rem; line-height:2.0;">
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">CPM</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpm',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">Thumb Stop Rate</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('tsr',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">CTR (Todos)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_all',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">CTR (Link)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_link',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">Compras</span><span style="color:#FAFAFA; font-weight:500;">{int(ad.get('purchases',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">CPA</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpa',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-            <span style="color:#9CA3AF;">ROAS</span><span style="color:#00d592; font-weight:600;">{_fmt_roas(ad.get('roas',0))}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding-top:2px;">
-            <span style="color:#9CA3AF;">Valor Gasto</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('spend',0))}</span>
-        </div>
-    </div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+<span style="background:{lc}; color:#000; font-size:0.65rem; font-weight:700; padding:3px 10px; border-radius:12px; letter-spacing:0.5px;">{lbl}</span>
+<span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{tc}</span>
+</div>
+
+<img src="{url}" style="width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
+
+<p style="color:#FAFAFA; font-size:0.85rem; font-weight:600; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em;">{ad['nome']}</p>
+
+<div style="font-size:0.72rem; line-height:2.0;">
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">CPM</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpm',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">Thumb Stop Rate</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('tsr',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">CTR (Todos)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_all',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">CTR (Link)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_link',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">Compras</span><span style="color:#FAFAFA; font-weight:500;">{int(ad.get('purchases',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">CPA</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpa',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+<span style="color:#9CA3AF;">ROAS</span><span style="color:#00d592; font-weight:600;">{_fmt_roas(ad.get('roas',0))}</span>
+</div>
+<div style="display:flex; justify-content:space-between; padding-top:2px;">
+<span style="color:#9CA3AF;">Valor Gasto</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('spend',0))}</span>
+</div>
+</div>
 </div>""", unsafe_allow_html=True)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
