@@ -274,6 +274,8 @@ def _render_ad_cards(ads):
             if link:
                 st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                 st.link_button("🔗 Ver Material Original", url=link, use_container_width=True)
+            if st.button("🧠 Rodar Raio-X da IA", key=f"rx_{ad['ad_id']}_{i}", use_container_width=True):
+                _show_ad_insights(get_active_project(), ad)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
 
@@ -284,78 +286,59 @@ def _build_brain(p):
 ### Dores: Medo de compra online, atendimento ruim, dúvida de qualidade, comparação de preço
 ### Soluções: Garantia, frete grátis, depoimentos reais, preço reposicionado, autoridade técnica"""
 
-def _build_table(ads):
-    if not ads: return "_Sem dados_"
-    h="| # | Anúncio | Gasto | CPM | TSR | CTR | Compras | ROAS |\n|---|---|---|---|---|---|---|---|\n"
-    for i,a in enumerate(ads,1):
-        h+=f"| {i} | {a['nome']} | {_fmt_brl(a['spend'])} | {_fmt_brl(a.get('cpm',0))} | {_fmt_pct(a.get('tsr',0))} | {_fmt_pct(a.get('ctr_all',0))} | {int(a.get('purchases',0))} | {_fmt_roas(a.get('roas',0))} |\n"
-    return h
-
-def _call_gemini(system, user):
+@st.dialog("🧠 Axoly Creative Insights", width="large")
+def _show_ad_insights(projeto, ad):
+    st.markdown(f"**Analisando:** `{ad['nome']}`")
+    guide=get_agent_prompt(_GUIDE_FILE)
+    if not guide:
+        st.error(f"Guia `{_GUIDE_FILE}` não encontrado.")
+        return
     import os
-    from google import genai
-    key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    if not key:
-        key = st.secrets.get("gemini", {}).get("api_key", "")
-    if isinstance(key, str): key = key.strip('"')
+    gemini_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not gemini_key:
+        gemini_key = st.secrets.get("gemini", {}).get("api_key", "")
+    if isinstance(gemini_key, str): gemini_key = gemini_key.strip('"')
     
-    client=genai.Client(api_key=key)
-    r=client.models.generate_content(model="gemini-2.5-flash",contents=user,
-        config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
-    return r.text
+    if not gemini_key:
+        st.error("Chave do Gemini Pendente. Adicione GEMINI_API_KEY no secrets.toml.")
+        return
 
-# ── Diretor de Arte IA ───────────────────────────────────────────────────────
-
-def _render_ai_director(projeto, ads):
-    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-    with st.expander("🎬 Diretor de Arte Inteligente (Matriz Criativa)", expanded=False):
-        guide=get_agent_prompt(_GUIDE_FILE)
-        if guide is None:
-            st.warning(f"Guia `{_GUIDE_FILE}` não encontrado em `intelligence_guides/`.")
-            return
-        import os
-        gemini_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-        if not gemini_key:
-            gemini_key = st.secrets.get("gemini", {}).get("api_key", "")
-        if isinstance(gemini_key, str): gemini_key = gemini_key.strip('"')
-        
-        if not gemini_key:
-            st.markdown("""
-            <div style="padding:20px; text-align:center;">
-                <div style="font-size:1.8rem; margin-bottom:12px; color:#60A5FA;"><i class="bi bi-key"></i></div>
-                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Chave do Gemini Pendente</h4>
-                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">GEMINI_API_KEY</code> no secrets.toml do Streamlit Cloud.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            return
-        nome=get_project_display_name(projeto); ta=len(ads)
-        ts=sum(a.get("spend",0) for a in ads)
-        st.markdown(f"""<div style="padding:14px 18px;background:rgba(0,213,146,0.04);border:1px solid rgba(0,213,146,0.15);border-radius:10px;margin-bottom:14px;">
-<p style="color:#FAFAFA;font-weight:600;font-size:0.88rem;margin:0 0 4px 0;"><i class="bi bi-cpu" style="color:#00d592;margin-right:6px;"></i>Copiloto — {nome}</p>
-<p style="color:#9CA3AF;font-size:0.78rem;margin:0;"><strong style="color:#FAFAFA;">{ta}</strong> criativos · Investimento: <strong style="color:#00d592;">{_fmt_brl(ts)}</strong></p>
-</div>""", unsafe_allow_html=True)
-        if st.button("⚡ Gerar Matriz Criativa via Gemini", key="btn_gen_matrix", use_container_width=True):
-            msg=f"""## Dados de Entrada
+    msg = f"""## Dados de Entrada
 {_build_brain(projeto)}
-### Anúncios Ativos
-{_build_table(ads)}
+
+### Desempenho do Anúncio (Isolado)
+- Nome: {ad['nome']}
+- Investimento: {_fmt_brl(ad['spend'])}
+- CPM: {_fmt_brl(ad.get('cpm',0))}
+- Thumb Stop Rate: {_fmt_pct(ad.get('tsr',0))}
+- CTR (Todos): {_fmt_pct(ad.get('ctr_all',0))}
+- CTR (Link): {_fmt_pct(ad.get('ctr_link',0))}
+- Compras: {int(ad.get('purchases',0))}
+- CPA: {_fmt_brl(ad.get('cpa',0))}
+- ROAS: {_fmt_roas(ad.get('roas',0))}
+
 ---
 ## Solicitação (formato Axoly)
-Analise os criativos e entregue:
-1. **Análise por Etapa**: Gancho (Hook 3s) → Conteúdo → Conversão
-2. **Gargalo Principal**: Identifique o ponto fraco dominante
-3. **Ação Recomendada**: Correção tática imediata
-4. **Classificação Final**: Winners / Testar Variações / Pausar
-5. **3 roteiros novos** (1 DSB, 1 Full Funnel, 1 UGC) com Gancho→Conteúdo→CTA
-6. **2 briefings de remarketing** (Prova Social + Objeção Direta)"""
-            with st.spinner("Gerando Matriz Criativa com Gemini..."):
-                try:
-                    st.session_state["_ai_matrix_result"]=_call_gemini(guide,msg)
-                except Exception as e: st.error(f"Erro Gemini: {e}")
-        r=st.session_state.get("_ai_matrix_result")
-        if r:
-            st.markdown("<hr style='border:none;border-top:1px solid #1f2937;margin:14px 0;'>", unsafe_allow_html=True)
-            st.markdown(r)
+Analise APENAS este criativo e entregue a resposta em Markdown limpo (SEM tabelas), dividida estritamente nas seguintes seções:
+
+🧠 **Análise por Etapa**
+(Descreva o desempenho do Gancho [3s], Conteúdo e Conversão com base nas métricas)
+
+⚠️ **Gargalo Principal**
+(Identifique o ponto fraco dominante do criativo)
+
+🎯 **Ação Recomendada**
+(Correção tática imediata)
+
+📊 **Classificação**
+(Apenas uma das opções: Winners, Testar Variações, ou Pausar)
+"""
+    with st.spinner("Analisando métricas do criativo..."):
+        try:
+            res = _call_gemini(guide, msg)
+            st.markdown(res)
+        except Exception as e:
+            st.error(f"Erro ao chamar a IA: {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FUNÇÃO PRINCIPAL
@@ -388,7 +371,7 @@ def render_criativos():
             <p style="color:#6b7280;font-size:0.82rem;">Adicione <code style="color:#60A5FA;">[meta_ads] access_token</code> no secrets.toml.</p>
         </div>
         """, unsafe_allow_html=True)
-        _render_ai_director(projeto,[]); return
+        return
 
     with st.spinner("Conectando ao Meta Ads..."):
         data=_fetch_meta_ads(meta_id,since,until)
@@ -405,7 +388,7 @@ def render_criativos():
     agg=data.get("agg",{})
     if not ads:
         st.markdown(f'<div class="glass-card" style="text-align:center;padding:40px;"><p style="color:#6b7280;font-size:1.5rem;"><i class="bi bi-megaphone"></i></p><h3 style="color:#FAFAFA;font-size:1rem;">Nenhum criativo com gasto em {mes}</h3></div>', unsafe_allow_html=True)
-        _render_ai_director(projeto,[]); return
+        return
 
     _render_macro_cards(agg)
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
@@ -413,4 +396,3 @@ def render_criativos():
     _render_top_performers(ads)
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     _render_ad_cards(ads)
-    _render_ai_director(projeto, ads)
