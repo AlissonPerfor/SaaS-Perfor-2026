@@ -1,573 +1,339 @@
 """
-modules/creative_analysis.py
-Módulo 'Criativos' do dashboard Perfor.IA.
-Exibe os anúncios ativos no Meta Ads com dados reais via API.
-
-Multi-tenancy: Usa get_active_project() do core.context para obter
-o meta_account_id do projeto selecionado na sidebar.
+modules/creative_analysis.py — Módulo Criativos Perfor.IA (Axoly Style)
 """
-
-import calendar
-import json
+import calendar, json
 from datetime import date
 from typing import Optional
-
 import streamlit as st
+import pandas as pd
 
 from core.context import (
-    get_active_project,
-    get_all_projects,
-    get_project_display_name,
-    render_cargo_badge,
-    get_agent_prompt,
+    get_active_project, get_all_projects, get_project_display_name,
+    render_cargo_badge, get_agent_prompt,
 )
 from core.sheets import MESES_ABREV
 
-
-# ── Constantes ────────────────────────────────────────────────────────────────
-
 _GUIDE_FILE = "MATRIZ_CRIATIVA_IA_guia-inteligencia.md"
+_FALLBACK = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=60"
 
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
-# ── Helpers — Período do mês ─────────────────────────────────────────────────
+def _month_range(m):
+    try: mn = MESES_ABREV.index(m)+1
+    except: mn = date.today().month
+    y = date.today().year
+    if mn > date.today().month: y -= 1
+    ld = calendar.monthrange(y, mn)[1]
+    return f"{y}-{mn:02d}-01", f"{y}-{mn:02d}-{ld:02d}"
 
-def _get_month_range(mes_abrev: str) -> tuple[str, str]:
-    """
-    Retorna (since, until) no formato 'YYYY-MM-DD' para o mês selecionado.
-    Usa o ano atual; se o mês selecionado for posterior ao mês corrente,
-    assume que se refere ao ano anterior.
-    """
-    try:
-        mes_num = MESES_ABREV.index(mes_abrev) + 1
-    except ValueError:
-        mes_num = date.today().month
+def _xval(actions, types=("purchase","omni_purchase")):
+    if not actions: return 0
+    for a in actions:
+        if a.get("action_type") in types:
+            return float(a.get("value",0))
+    return 0
 
-    ano = date.today().year
-    if mes_num > date.today().month:
-        ano -= 1
+def _fmt_brl(v):
+    if v is None: return "R$ 0,00"
+    if v >= 1000: return f"R$ {v/1000:.1f}k".replace(".",",")
+    return f"R$ {v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
-    last_day = calendar.monthrange(ano, mes_num)[1]
-    since = f"{ano}-{mes_num:02d}-01"
-    until = f"{ano}-{mes_num:02d}-{last_day:02d}"
-    return since, until
+def _fmt_pct(v): return f"{v:.2f}%".replace(".",",") if v else "0,00%"
+def _fmt_roas(v): return f"{v:.2f}x".replace(".",",") if v else "0,00x"
 
+# ── Meta API Init ────────────────────────────────────────────────────────────
 
-# ── Integração com a API do Meta Ads ─────────────────────────────────────────
-
-def _init_meta_api() -> bool:
-    """
-    Inicializa o SDK do facebook_business com as credenciais do secrets.toml.
-    Retorna True se a inicialização foi bem-sucedida, False caso contrário.
-    """
+def _init_meta_api():
     try:
         from facebook_business.api import FacebookAdsApi
-
-        meta_secrets = st.secrets.get("meta_ads")
-        if not meta_secrets:
-            return False
-
-        access_token = meta_secrets.get("access_token", "")
-        app_id = meta_secrets.get("app_id", "")
-
-        if not access_token:
-            return False
-
-        FacebookAdsApi.init(app_id, "", access_token)
+        tok = st.secrets.get("meta_ads",{}).get("access_token","").strip('"')
+        aid = st.secrets.get("meta_ads",{}).get("app_id","").strip('"')
+        if not tok: return False
+        FacebookAdsApi.init(aid, "", tok)
         return True
     except Exception as e:
-        print(f"[Meta API] Erro ao inicializar SDK: {e}")
-        return False
+        print(f"[Meta] {e}"); return False
 
+# ── Fetch Enriched Ads ───────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
-    """
-    Busca os TOP 20 anúncios por gasto no Meta Ads dentro do período.
-
-    Estratégia:
-      1) get_insights(level='ad') → top 20 por spend (1 call)
-      2) Ad.api_get com creative{image_url,thumbnail_url,video_id} (1 call/ad)
-    """
-    result = {"ads": [], "erro": None}
-
+def _fetch_meta_ads(account_id, since, until):
+    result = {"ads": [], "erro": None, "agg": {}}
     try:
         from facebook_business.adobjects.adaccount import AdAccount
         from facebook_business.adobjects.ad import Ad
-
-        if not account_id.startswith("act_"):
-            account_id = f"act_{account_id}"
-
+        if not account_id.startswith("act_"): account_id = f"act_{account_id}"
         account = AdAccount(account_id)
 
-        # ── 1) Top 20 por gasto — única requisição de insights ───────────
-        insights = account.get_insights(
-            fields=["ad_id", "ad_name", "spend"],
-            params={
-                "level": "ad",
-                "time_range": {"since": since, "until": until},
-                "sort": ["spend_descending"],
-                "limit": 20,
-                "filtering": [
-                    {"field": "spend", "operator": "GREATER_THAN", "value": "0"}
-                ],
-            },
+        rows = account.get_insights(
+            fields=["ad_id","ad_name","spend","impressions","cpm","ctr",
+                    "inline_link_click_ctr","actions","cost_per_action_type",
+                    "purchase_roas","video_play_actions"],
+            params={"level":"ad","time_range":{"since":since,"until":until},
+                    "sort":["spend_descending"],"limit":20,
+                    "filtering":[{"field":"spend","operator":"GREATER_THAN","value":"0"}]},
         )
 
-        # ── 2) Para cada insight, busca ad com creative expandido ────────
-        for row in insights:
-            ad_id = row.get("ad_id")
-            ad_name = row.get("ad_name", "Sem nome")
-            spend = float(row.get("spend", 0))
+        t_spend=t_imp=t_purchases=n=0; s_cpm=s_ctr=s_lctr=s_tsr=s_roas=0
+        for r in rows:
+            spend=float(r.get("spend",0)); imp=int(r.get("impressions",0))
+            cpm=float(r.get("cpm",0)); ctr_all=float(r.get("ctr",0))
+            ctr_link=float(r.get("inline_link_click_ctr",0))
+            purchases=int(_xval(r.get("actions")))
+            cpa=_xval(r.get("cost_per_action_type"))
+            roas=_xval(r.get("purchase_roas"))
+            vpa=r.get("video_play_actions")
+            v3s=int(_xval(vpa,("video_view",))) if vpa else 0
+            tsr=(v3s/imp*100) if imp>0 else 0
 
-            if spend <= 0:
-                continue
+            t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
+            s_cpm+=cpm; s_ctr+=ctr_all; s_lctr+=ctr_link; s_tsr+=tsr; s_roas+=roas
 
-            preview_url = None
-            creative_type = "Imagem"
-            ad_status = "ACTIVE"
-
+            preview=None; ctype="Imagem"; status="ACTIVE"
             try:
-                ad_obj = Ad(ad_id).api_get(
-                    fields=[
-                        "name",
-                        "status",
-                        "creative{image_url,thumbnail_url,video_id}",
-                    ]
-                )
-                ad_status = ad_obj.get("status", "ACTIVE")
+                ao=Ad(r.get("ad_id")).api_get(fields=["status","creative{image_url,thumbnail_url,video_id}"])
+                status=ao.get("status","ACTIVE")
+                cr=ao.get("creative") or {}
+                iu=cr.get("image_url"); tu=cr.get("thumbnail_url"); vi=cr.get("video_id")
+                if vi or tu: ctype="Vídeo"; preview=tu or iu
+                else: ctype="Imagem"; preview=iu
+            except: pass
 
-                creative = ad_obj.get("creative") or {}
+            result["ads"].append({"nome":r.get("ad_name","?"),"status":status,"spend":spend,
+                "preview_url":preview,"creative_type":ctype,"cpm":cpm,"tsr":tsr,
+                "ctr_all":ctr_all,"ctr_link":ctr_link,"purchases":purchases,
+                "cpa":cpa,"roas":roas})
 
-                image_url = creative.get("image_url")
-                thumbnail_url = creative.get("thumbnail_url")
-                video_id = creative.get("video_id")
-
-                if video_id or thumbnail_url:
-                    creative_type = "Vídeo"
-                    preview_url = thumbnail_url or image_url
-                else:
-                    creative_type = "Imagem"
-                    preview_url = image_url
-            except Exception:
-                pass
-
-            result["ads"].append({
-                "nome": ad_name,
-                "status": ad_status,
-                "spend": spend,
-                "preview_url": preview_url,
-                "creative_type": creative_type,
-            })
-
+        if n>0:
+            result["agg"]={"cpm":s_cpm/n,"tsr":s_tsr/n,"ctr_all":s_ctr/n,"ctr_link":s_lctr/n,
+                "purchases":t_purchases,"cpa":t_spend/t_purchases if t_purchases>0 else 0,
+                "roas":s_roas/n,"spend":t_spend}
     except Exception as e:
-        result["erro"] = str(e)
-
+        result["erro"]=str(e)
     return result
 
+# ── Render: 8 Macro Cards (Axoly Style) ──────────────────────────────────────
 
-# ── Formatação ────────────────────────────────────────────────────────────────
+def _render_macro_cards(agg):
+    metrics = [
+        ("CPM", _fmt_brl(agg.get("cpm")), "MÉDIA DO PERÍODO", "#3B82F6"),
+        ("Thumb Stop Rate", _fmt_pct(agg.get("tsr")), "MÉDIA DO PERÍODO", "#8B5CF6"),
+        ("CTR (Todos)", _fmt_pct(agg.get("ctr_all")), "MÉDIA DO PERÍODO", "#F59E0B"),
+        ("CTR (Link)", _fmt_pct(agg.get("ctr_link")), "MÉDIA DO PERÍODO", "#EF4444"),
+        ("Compras", str(int(agg.get("purchases",0))), "TOTAL DO PERÍODO", "#00d592"),
+        ("CPA", _fmt_brl(agg.get("cpa")), "MÉDIA DO PERÍODO", "#F59E0B"),
+        ("ROAS", _fmt_roas(agg.get("roas")), "MÉDIA DO PERÍODO", "#8B5CF6"),
+        ("Valor Gasto", _fmt_brl(agg.get("spend")), "TOTAL DO PERÍODO", "#3B82F6"),
+    ]
+    cols = st.columns(8, gap="small")
+    for col, (label, val, sub, color) in zip(cols, metrics):
+        with col:
+            st.markdown(f"""<div class="glass-card" style="padding:14px 10px;text-align:left;min-height:110px;">
+<p style="color:{color};font-size:0.68rem;font-weight:600;margin:0 0 2px 0;letter-spacing:0.5px;">{label}</p>
+<p style="color:#6b7280;font-size:0.58rem;letter-spacing:1px;margin:0 0 8px 0;">{sub}</p>
+<p style="color:#FAFAFA;font-size:1.3rem;font-weight:700;margin:0;letter-spacing:-0.5px;">{val}</p>
+</div>""", unsafe_allow_html=True)
 
-def _fmt_spend(value: float) -> str:
-    """Formata o valor de gasto em BRL."""
-    if value >= 1_000:
-        return f"R$ {value / 1_000:.1f}k".replace(".", ",")
-    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+# ── Render: Diagnóstico Executivo ────────────────────────────────────────────
 
+def _render_diagnostico(agg, mes):
+    roas=agg.get("roas",0); p=int(agg.get("purchases",0))
+    ctr=agg.get("ctr_all",0); tsr=agg.get("tsr",0); cpa=agg.get("cpa",0)
+    diag = f"Com um ROAS de {_fmt_roas(roas)} e {p} compras, a conta "
+    diag += "apresenta retorno positivo. " if roas>1 else "precisa de otimização urgente. "
+    diag += f"O CTR geral de {_fmt_pct(ctr)} "
+    diag += "está saudável." if ctr>1 else "indica necessidade de novos ganchos criativos."
 
-def _status_label(raw_status: str) -> tuple[str, str, str]:
-    """
-    Retorna (label, cor, bg) para o status do anúncio.
-    """
-    mapping = {
-        "ACTIVE": ("Ativo", "#00d592", "rgba(0,213,146,0.15)"),
-        "PAUSED": ("Pausado", "#FCD34D", "rgba(251,191,36,0.15)"),
-        "CAMPAIGN_PAUSED": ("Campanha Pausada", "#F59E0B", "rgba(245,158,11,0.12)"),
-        "ADSET_PAUSED": ("Conjunto Pausado", "#F59E0B", "rgba(245,158,11,0.12)"),
-    }
-    return mapping.get(raw_status, ("Inativo", "#6b7280", "rgba(107,114,128,0.15)"))
+    st.markdown(f"""<div class="glass-card" style="padding:24px 28px;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+<span style="font-size:1.1rem;">📊</span>
+<span style="color:#FAFAFA;font-weight:700;font-size:0.95rem;">Diagnóstico da Conta</span>
+</div>
+<p style="color:#6b7280;font-size:0.7rem;margin:0 0 16px 0;">Análise executiva por IA — {mes}</p>
+<p style="color:#FAFAFA;font-weight:600;font-size:0.85rem;margin:0 0 6px 0;">📌 Diagnóstico do Período</p>
+<p style="color:#9CA3AF;font-size:0.82rem;line-height:1.7;margin:0 0 20px 0;">{diag}</p>
+<p style="color:#FAFAFA;font-weight:600;font-size:0.85rem;margin:0 0 10px 0;">🚀 3 Ações para a Próxima Semana</p>
+<ol style="color:#9CA3AF;font-size:0.8rem;line-height:1.8;margin:0;padding-left:18px;">
+<li>Testar novos ganchos visuais para melhorar o CTR (Todos) e a Thumb Stop Rate.</li>
+<li>Criar variação de copies nos anúncios ativos focando em dores e benefícios.</li>
+<li>{"Escalar os criativos campeões com aumento gradual de orçamento." if roas>1.5 else "Pausar criativos com CPA acima da meta e redistribuir verba."}</li>
+</ol>
+<p style="color:#6b7280;font-size:0.75rem;margin:14px 0 0 0;">⭐ Veredito: <strong style="color:#FAFAFA;">{"Manter & Otimizar" if roas>1 else "Reestruturar Criativos"}</strong></p>
+</div>""", unsafe_allow_html=True)
 
+# ── Render: Top Performers (Axoly Insights) ──────────────────────────────────
 
-# ── Renderização dos Cards de Criativos ──────────────────────────────────────
+def _render_top_performers(ads):
+    if len(ads)<1: return
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#6b7280;font-size:0.72rem;letter-spacing:1.5px;margin-bottom:10px;'><i class='bi bi-stars' style='margin-right:4px;'></i> AXOLY INSIGHTS — Top Performers</p>", unsafe_allow_html=True)
+    df=pd.DataFrame(ads)
+    champs=[
+        ("🥇 Melhor Gancho","tsr","THUMB STOP RATE",_fmt_pct),
+        ("⚡ Melhor CTR","ctr_all","CTR",_fmt_pct),
+        ("🛒 Mais Compras","purchases","COMPRAS",lambda v:str(int(v))),
+        ("📈 Maior ROAS","roas","ROAS",_fmt_roas),
+    ]
+    cols=st.columns(4,gap="medium")
+    for col,(title,key,sub,fmt) in zip(cols,champs):
+        if key not in df.columns: continue
+        best=df.loc[df[key].idxmax()]
+        url=best.get("preview_url") or _FALLBACK
+        with col:
+            st.markdown(f"""<div class="glass-card" style="padding:14px;text-align:center;">
+<p style="color:#FAFAFA;font-weight:600;font-size:0.82rem;margin:0 0 10px 0;">{title}</p></div>""", unsafe_allow_html=True)
+            try: st.image(url, use_container_width=True)
+            except: st.image(_FALLBACK, use_container_width=True)
+            st.markdown(f"""<p style="color:#FAFAFA;font-size:0.82rem;font-weight:500;margin:4px 0 2px 0;">{best['nome']}</p>
+<p style="color:#6b7280;font-size:0.65rem;margin:0;">{sub}</p>
+<p style="color:#00d592;font-size:1rem;font-weight:700;margin:2px 0 0 0;">{fmt(best[key])}</p>""", unsafe_allow_html=True)
 
-_FALLBACK_IMG = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=60"
+# ── Render: Grid de Criativos com Métricas Dedicadas ─────────────────────────
 
+def _render_ad_cards(ads):
+    st.markdown(f"<p style='color:#6b7280;font-size:0.85rem;margin:20px 0 12px 0;'><strong style='color:#FAFAFA;'>Criativos ({len(ads)})</strong> — Top por gasto</p>", unsafe_allow_html=True)
+    cols=st.columns(5, gap="small")
+    for i,ad in enumerate(ads):
+        lbl="Ativo" if ad["status"]=="ACTIVE" else "Pausado"
+        lc="#00d592" if ad["status"]=="ACTIVE" else "#FCD34D"
+        tc="🎬 Vídeo" if ad.get("creative_type")=="Vídeo" else "🖼️ Imagem"
+        url=ad.get("preview_url") or _FALLBACK
+        with cols[i%5]:
+            st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+<span style="background:{lc};color:#000;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:4px;">{lbl}</span>
+<span style="color:#9CA3AF;font-size:0.6rem;">{tc}</span></div>""", unsafe_allow_html=True)
+            try: st.image(url, use_container_width=True)
+            except: st.image(_FALLBACK, use_container_width=True)
+            st.markdown(f"""<p style="color:#FAFAFA;font-size:0.78rem;font-weight:600;margin:6px 0 8px 0;line-height:1.3;">{ad['nome']}</p>
+<div style="font-size:0.68rem;line-height:1.9;">
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">CPM</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_brl(ad.get('cpm',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">Thumb Stop Rate</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_pct(ad.get('tsr',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">CTR (Todos)</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_pct(ad.get('ctr_all',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">CTR (Link)</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_pct(ad.get('ctr_link',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">Compras</span><span style="color:#FAFAFA;font-weight:500;">{int(ad.get('purchases',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">CPA</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_brl(ad.get('cpa',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">ROAS</span><span style="color:#00d592;font-weight:600;">{_fmt_roas(ad.get('roas',0))}</span></div>
+<div style="display:flex;justify-content:space-between;"><span style="color:#6b7280;">Valor Gasto</span><span style="color:#FAFAFA;font-weight:500;">{_fmt_brl(ad.get('spend',0))}</span></div>
+</div><div style="height:16px;"></div>""", unsafe_allow_html=True)
 
-def _render_ad_cards(ads: list[dict]) -> None:
-    """Renderiza os cards dos anúncios em um grid de 3 colunas usando st.image."""
-    cols = st.columns(3, gap="medium")
+# ── Gemini Helpers ───────────────────────────────────────────────────────────
 
-    for i, ad in enumerate(ads):
-        label, status_color, status_bg = _status_label(ad["status"])
-        spend_str = _fmt_spend(ad["spend"])
-        creative_type = ad.get("creative_type", "Imagem")
-        preview_url = ad.get("preview_url") or _FALLBACK_IMG
+def _build_brain(p):
+    n=get_project_display_name(p); ni=p.get("nicho") or "e-commerce"
+    return f"""## Perfor Brain — {n} (Nicho: {ni})
+### Personas: O Inseguro, O Prático, O Buscador de Resultado, O Comparador, O Premium
+### Dores: Medo de compra online, atendimento ruim, dúvida de qualidade, comparação de preço
+### Soluções: Garantia, frete grátis, depoimentos reais, preço reposicionado, autoridade técnica"""
 
-        # Ícone do tipo de criativo
-        if creative_type == "Vídeo":
-            type_icon = '<i class="bi bi-camera-video-fill"></i>'
-        else:
-            type_icon = '<i class="bi bi-image-fill"></i>'
+def _build_table(ads):
+    if not ads: return "_Sem dados_"
+    h="| # | Anúncio | Gasto | CPM | TSR | CTR | Compras | ROAS |\n|---|---|---|---|---|---|---|---|\n"
+    for i,a in enumerate(ads,1):
+        h+=f"| {i} | {a['nome']} | {_fmt_brl(a['spend'])} | {_fmt_brl(a.get('cpm',0))} | {_fmt_pct(a.get('tsr',0))} | {_fmt_pct(a.get('ctr_all',0))} | {int(a.get('purchases',0))} | {_fmt_roas(a.get('roas',0))} |\n"
+    return h
 
-        with cols[i % 3]:
-            # ── Card container (abertura) ──
-            st.markdown(f"""
-            <div class="glass-card" style="padding: 16px; margin-bottom: 24px; display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-            """, unsafe_allow_html=True)
-
-            # ── Preview real via st.image ──
-            try:
-                st.image(preview_url, use_container_width=True)
-            except Exception:
-                st.image(_FALLBACK_IMG, use_container_width=True)
-
-            # ── Metadados + status ──
-            st.markdown(f"""
-                <h4 style="margin: 8px 0 10px 0; font-size: 0.95rem; color: #FAFAFA; line-height: 1.3;">{ad['nome']}</h4>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 0.9rem; color:#9CA3AF;">{type_icon}</span>
-                        <span style="font-size: 0.8rem; color: #9CA3AF;">{creative_type}</span>
-                    </div>
-                    <span style="font-size: 0.9rem; font-weight: 600; color: #FAFAFA; letter-spacing: -0.3px;">
-                        <i class="bi bi-cash" style="margin-right:3px; color:#00d592;"></i>{spend_str}
-                    </span>
-                </div>
-                <div style="display: inline-block; align-self: flex-start; padding: 4px 12px; border-radius: 20px; background: {status_bg}; border: 1px solid {status_color};">
-                    <span style="color: {status_color}; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">{label}</span>
-                </div>
-            </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-# ── Integração Gemini — Chamada de IA ────────────────────────────────────────
-
-def _build_brain_context(projeto: dict) -> str:
-    """Monta o contexto simulado do Perfor Brain (Personas, Dores, Soluções)."""
-    nome = get_project_display_name(projeto)
-    nicho = projeto.get("nicho") or projeto.get("categoria") or "e-commerce"
-    return f"""## Perfor Brain — {nome}
-**Nicho:** {nicho}
-
-### Buyer Personas Mapeadas
-1. **O Cliente Inseguro** — Tem interesse mas precisa de muita prova social e garantia para converter.
-2. **O Comprador Prático** — Busca agilidade, frete rápido e praticidade no checkout.
-3. **O Buscador de Resultado** — Foco total nos benefícios tangíveis e transformação real.
-4. **O Comparador de Preço** — Pesquisa em vários concorrentes antes de decidir.
-5. **O Cliente Premium** — Prioriza qualidade e experiência acima do preço.
-
-### Dores Mapeadas
-- Medo de comprar online e não receber o produto ou receber algo diferente.
-- Frustração com atendimento pós-venda ruim em concorrentes.
-- Dúvida sobre a eficácia/qualidade real do produto.
-- Comparação constante de preço entre marcas similares.
-- Falta de confiança em marcas novas ou pouco conhecidas.
-
-### Soluções e Alavancas do Produto
-- Garantia incondicional de satisfação (7-30 dias).
-- Frete grátis ou frete expresso como diferencial competitivo.
-- Depoimentos reais e resultados comprovados de clientes.
-- Preço reposicionado ("menos de R$ X por dia").
-- Certificações, laudos técnicos e autoridade do especialista.
-"""
-
-
-def _build_ads_table(ads: list[dict]) -> str:
-    """Formata os anúncios ativos como tabela Markdown para o prompt."""
-    if not ads:
-        return "_Nenhum anúncio com gasto encontrado no período._"
-    lines = ["| # | Nome do Anúncio | Status | Tipo | Gasto (R$) |"]
-    lines.append("|---|---|---|---|---|")
-    for i, ad in enumerate(ads, 1):
-        status_label = {"ACTIVE": "Ativo", "PAUSED": "Pausado"}.get(ad["status"], ad["status"])
-        lines.append(
-            f"| {i} | {ad['nome']} | {status_label} | {ad.get('creative_type', '—')} | {ad['spend']:.2f} |"
-        )
-    return "\n".join(lines)
-
-
-def _call_gemini(system_prompt: str, user_message: str) -> str:
-    """Chama a API do Gemini e retorna a resposta em texto."""
+def _call_gemini(system, user):
     from google import genai
+    key=st.secrets.get("gemini",{}).get("api_key","").strip('"')
+    client=genai.Client(api_key=key)
+    r=client.models.generate_content(model="gemini-2.5-pro",contents=user,
+        config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
+    return r.text
 
-    api_key = st.secrets["gemini"]["api_key"]
-    client = genai.Client(api_key=api_key)
+# ── Diretor de Arte IA ───────────────────────────────────────────────────────
 
-    response = client.models.generate_content(
-        model="gemini-2.5-pro",
-        contents=user_message,
-        config=genai.types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.8,
-            max_output_tokens=4096,
-        ),
-    )
-    return response.text
-
-
-# ── Componente Visual: Diretor de Arte Inteligente ───────────────────────────
-
-def _render_ai_director(projeto: dict, ads: list[dict]) -> None:
-    """
-    Renderiza o expander do Diretor de Arte Inteligente (Matriz Criativa).
-    Carrega o guia de inteligência como System Prompt e cruza com dados
-    de anúncios + Perfor Brain para gerar roteiros via Gemini.
-    """
+def _render_ai_director(projeto, ads):
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-
     with st.expander("🎬 Diretor de Arte Inteligente (Matriz Criativa)", expanded=False):
-        prompt_guide = get_agent_prompt(_GUIDE_FILE)
-
-        # ── Guia não encontrado ──────────────────────────────────────────
-        if prompt_guide is None:
-            st.markdown(f"""
-            <div style="padding:20px; text-align:center;">
-                <div style="font-size:1.8rem; margin-bottom:12px; color:#F59E0B;">
-                    <i class="bi bi-file-earmark-text"></i>
-                </div>
-                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Guia de Inteligência Pendente</h4>
-                <p style="color:#6b7280; font-size:0.82rem; margin:0 0 12px 0;">
-                    O arquivo <code style="color:#FCD34D;">{_GUIDE_FILE}</code> ainda não foi adicionado
-                    à pasta <code style="color:#FCD34D;">intelligence_guides/</code>.
-                </p>
-                <p style="color:#4b5563; font-size:0.72rem; margin:0;">
-                    Adicione o manual para ativar o Copiloto de Análise Criativa.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+        guide=get_agent_prompt(_GUIDE_FILE)
+        if guide is None:
+            st.warning(f"Guia `{_GUIDE_FILE}` não encontrado em `intelligence_guides/`.")
             return
-
-        # ── Chave Gemini não configurada ─────────────────────────────────
-        gemini_secrets = st.secrets.get("gemini")
-        if not gemini_secrets or not gemini_secrets.get("api_key"):
-            st.markdown("""
-            <div style="padding:20px; text-align:center;">
-                <div style="font-size:1.8rem; margin-bottom:12px; color:#60A5FA;"><i class="bi bi-key"></i></div>
-                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Chave do Gemini Pendente</h4>
-                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">[gemini] api_key</code> no secrets.toml.</p>
-            </div>
-            """, unsafe_allow_html=True)
+        gk=st.secrets.get("gemini",{}).get("api_key","").strip('"')
+        if not gk:
+            st.info("Adicione `[gemini] api_key` no secrets.toml para ativar o copiloto.")
             return
-
-        # ── Header com métricas ──────────────────────────────────────────
-        nome_projeto = get_project_display_name(projeto)
-        total_ads = len(ads)
-        total_spend = sum(ad.get("spend", 0) for ad in ads)
-        ativos = sum(1 for ad in ads if ad["status"] == "ACTIVE")
-
-        st.markdown(f"""
-        <div style="padding:16px 20px; background:rgba(0,213,146,0.04); border:1px solid rgba(0,213,146,0.15); border-radius:10px; margin-bottom:16px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                <i class="bi bi-cpu" style="font-size:1.2rem; color:#00d592;"></i>
-                <span style="color:#FAFAFA; font-weight:600; font-size:0.9rem;">Copiloto Criativo — {nome_projeto}</span>
-            </div>
-            <p style="color:#9CA3AF; font-size:0.8rem; margin:0; line-height:1.6;">
-                <strong style="color:#FAFAFA;">{total_ads}</strong> criativos analisados ·
-                <strong style="color:#FAFAFA;">{ativos}</strong> ativos ·
-                Investimento total: <strong style="color:#00d592;">{_fmt_spend(total_spend)}</strong>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # ── Botão de Geração ─────────────────────────────────────────────
+        nome=get_project_display_name(projeto); ta=len(ads)
+        ts=sum(a.get("spend",0) for a in ads)
+        st.markdown(f"""<div style="padding:14px 18px;background:rgba(0,213,146,0.04);border:1px solid rgba(0,213,146,0.15);border-radius:10px;margin-bottom:14px;">
+<p style="color:#FAFAFA;font-weight:600;font-size:0.88rem;margin:0 0 4px 0;"><i class="bi bi-cpu" style="color:#00d592;margin-right:6px;"></i>Copiloto — {nome}</p>
+<p style="color:#9CA3AF;font-size:0.78rem;margin:0;"><strong style="color:#FAFAFA;">{ta}</strong> criativos · Investimento: <strong style="color:#00d592;">{_fmt_brl(ts)}</strong></p>
+</div>""", unsafe_allow_html=True)
         if st.button("⚡ Gerar Matriz Criativa via Gemini", key="btn_gen_matrix", use_container_width=True):
-            brain_ctx = _build_brain_context(projeto)
-            ads_table = _build_ads_table(ads)
-
-            user_message = f"""## Dados de Entrada para Análise
-
-### Contexto Estratégico (Perfor Brain)
-{brain_ctx}
-
-### Anúncios Ativos no Meta Ads (período selecionado)
-{ads_table}
-
+            msg=f"""## Dados de Entrada
+{_build_brain(projeto)}
+### Anúncios Ativos
+{_build_table(ads)}
 ---
-
-## Solicitação
-Com base no protocolo de auditoria do guia, analise os anúncios acima e entregue:
-1. **Auditoria rápida** dos criativos atuais (winners vs. fadiga).
-2. **3 roteiros novos de vídeo** (1 DSB, 1 Full Funnel, 1 UGC) seguindo a anatomia Gancho → Conteúdo → CTA.
-3. **2 briefings de imagem/carrossel** para remarketing (Prova Social + Objeção Direta).
-4. Para cada briefing, indique o Pilar, Persona Alvo, Gancho, Conteúdo e CTA conforme o formato de entrega.
-"""
+## Solicitação (formato Axoly)
+Analise os criativos e entregue:
+1. **Análise por Etapa**: Gancho (Hook 3s) → Conteúdo → Conversão
+2. **Gargalo Principal**: Identifique o ponto fraco dominante
+3. **Ação Recomendada**: Correção tática imediata
+4. **Classificação Final**: Winners / Testar Variações / Pausar
+5. **3 roteiros novos** (1 DSB, 1 Full Funnel, 1 UGC) com Gancho→Conteúdo→CTA
+6. **2 briefings de remarketing** (Prova Social + Objeção Direta)"""
             with st.spinner("Gerando Matriz Criativa com Gemini..."):
                 try:
-                    resposta = _call_gemini(
-                        system_prompt=prompt_guide,
-                        user_message=user_message,
-                    )
-                    st.session_state["_ai_matrix_result"] = resposta
-                except Exception as e:
-                    st.error(f"Erro na chamada do Gemini: {e}")
-
-        # ── Exibe resultado salvo ────────────────────────────────────────
-        resultado = st.session_state.get("_ai_matrix_result")
-        if resultado:
-            st.markdown("<hr style='border:none; border-top:1px solid #1f2937; margin:16px 0;'>", unsafe_allow_html=True)
-            st.markdown(resultado)
-
+                    st.session_state["_ai_matrix_result"]=_call_gemini(guide,msg)
+                except Exception as e: st.error(f"Erro Gemini: {e}")
+        r=st.session_state.get("_ai_matrix_result")
+        if r:
+            st.markdown("<hr style='border:none;border-top:1px solid #1f2937;margin:14px 0;'>", unsafe_allow_html=True)
+            st.markdown(r)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FUNÇÃO PÚBLICA PRINCIPAL
+# FUNÇÃO PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════════════
 
-def render_criativos() -> None:
-    render_cargo_badge(
-        "✦ Criativos Meta Ads",
-        "Anúncios ativos e performance de criativos em tempo real.",
-    )
-
-    # ── Verifica projeto ativo ────────────────────────────────────────────────
-    projeto = get_active_project()
-
+def render_criativos():
+    render_cargo_badge("✦ Criativos Meta Ads","Análise de criativos em tempo real · Axoly Style")
+    projeto=get_active_project()
     if projeto is None:
-        st.markdown(
-            """<div class="glass-card" style="text-align:center; padding:40px 32px;">
-                <div style="font-size:2rem; margin-bottom:14px; color:#3B82F6;"><i class="bi bi-bullseye"></i></div>
-                <h3 style="color:#FAFAFA; margin:0 0 8px 0; font-size:1rem;">Selecione um Projeto</h3>
-                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Para visualizar os criativos, selecione um projeto específico no seletor da sidebar.</p>
-            </div>""",
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="glass-card" style="text-align:center;padding:40px;"><h3 style="color:#FAFAFA;">Selecione um Projeto</h3><p style="color:#6b7280;">Escolha um projeto na sidebar.</p></div>', unsafe_allow_html=True)
         return
-
-    projetos = get_all_projects()
-    if not projetos:
-        st.warning("Nenhum projeto encontrado.")
+    if not get_all_projects(): st.warning("Nenhum projeto."); return
+    meta_id=projeto.get("meta_account_id")
+    if not meta_id:
+        st.markdown(f'<div class="glass-card" style="text-align:center;padding:32px;"><p style="color:#FCD34D;font-size:1.5rem;"><i class="bi bi-gear-fill"></i></p><h3 style="color:#FCD34D;font-size:1rem;">Meta Não Configurado</h3><p style="color:#6b7280;font-size:0.82rem;">meta_account_id ausente no Supabase.</p></div>', unsafe_allow_html=True)
         return
+    mes=st.session_state.get("sel_mes_dashboard")
+    if not mes:
+        h=date.today(); idx=h.month-1
+        if h.day<=5 and h.month>1: idx=h.month-2
+        mes=MESES_ABREV[idx]
+    since,until=_month_range(mes)
+    st.markdown(f"<p style='color:#6b7280;font-size:0.82rem;text-align:right;margin-bottom:16px;'>Conectado · <strong>act_{meta_id}</strong> · {mes}</p>", unsafe_allow_html=True)
 
-    meta_account_id = projeto.get("meta_account_id")
+    if not _init_meta_api():
+        st.markdown("""<div class="glass-card" style="text-align:center;padding:32px;">
+<p style="color:#60A5FA;font-size:1.5rem;"><i class="bi bi-key-fill"></i></p>
+<h3 style="color:#60A5FA;font-size:1rem;">Credenciais Meta Pendentes</h3>
+<p style="color:#6b7280;font-size:0.82rem;">Adicione <code style="color:#60A5FA;">[meta_ads] access_token</code> no secrets.toml</p>
+</div>""", unsafe_allow_html=True)
+        _render_ai_director(projeto,[]); return
 
-    if not meta_account_id:
-        nome_proj = projeto.get("nome_cliente") or projeto.get("nome", "Projeto")
-        html_erro = f"""
-        <div class="glass-card" style="border-color:rgba(251,191,36,0.4); background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
-        <div style="font-size:2rem; margin-bottom:14px; color:#FCD34D;"><i class="bi bi-gear-fill"></i></div>
-        <h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">Conta Meta Não Configurada</h3>
-        <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os anúncios para <strong style="color:#FAFAFA;">{nome_proj}</strong>.</p>
-        <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:10px 16px; display:inline-block; max-width:600px;">
-        <p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace; letter-spacing:0.3px;">meta_account_id não definido no Supabase.</p>
-        </div>
-        <p style="color:#4b5563; font-size:0.75rem; margin:16px 0 0 0;">Verifique o campo <code style="color:#FCD34D;">meta_account_id</code> na tabela de projetos para visualizar os criativos.</p>
-        </div>
-        """
-        st.markdown(html_erro, unsafe_allow_html=True)
-        return
-
-    # ── Seletor de Mês (reutiliza a mesma chave do dashboard) ────────────────
-    mes_sel = st.session_state.get("sel_mes_dashboard")
-    if not mes_sel:
-        hoje = date.today()
-        idx = hoje.month - 1
-        if hoje.day <= 5 and hoje.month > 1:
-            idx = hoje.month - 2
-        mes_sel = MESES_ABREV[idx]
-
-    since, until = _get_month_range(mes_sel)
-
-    st.markdown(
-        f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:20px; text-align:right;'>"
-        f"Meta Account: <strong>{meta_account_id}</strong> · "
-        f"Período: <strong>{mes_sel}</strong></p>",
-        unsafe_allow_html=True,
-    )
-
-    # ── Inicializa a API do Meta ─────────────────────────────────────────────
-    meta_ok = _init_meta_api()
-
-    if not meta_ok:
-        # Credenciais do Meta não configuradas — mostra aviso amigável
-        st.markdown("""
-        <div class="glass-card" style="border-color:rgba(59,130,246,0.4); background:linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
-            <div style="font-size:2rem; margin-bottom:14px; color:#60A5FA;"><i class="bi bi-key-fill"></i></div>
-            <h3 style="color:#60A5FA; margin:0 0 8px 0; font-size:1rem;">Credenciais do Meta Pendentes</h3>
-            <p style="color:#9CA3AF; font-size:0.85rem; max-width:520px; margin:0 auto 16px auto; line-height:1.7;">
-                Para conectar à API do Meta Ads, adicione as credenciais no arquivo de configuração.
-            </p>
-            <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:14px 20px; display:inline-block; max-width:600px; text-align:left;">
-                <p style="color:#60A5FA; font-size:0.72rem; margin:0 0 8px 0; letter-spacing:1px; font-weight:600;">SECRETS.TOML</p>
-                <code style="color:#9CA3AF; font-size:0.78rem; line-height:1.8; white-space:pre; font-family:'Fira Code', monospace;">[meta_ads]
-app_id = "SEU_APP_ID"
-access_token = "SEU_ACCESS_TOKEN"</code>
-            </div>
-            <p style="color:#4b5563; font-size:0.72rem; margin:16px 0 0 0;">
-                <i class="bi bi-shield-lock" style="margin-right:3px;"></i>
-                Adicione na seção <code style="color:#60A5FA;">[meta_ads]</code> do <code style="color:#60A5FA;">.streamlit/secrets.toml</code>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Renderiza o expander do Diretor de Arte mesmo sem dados da API
-        _render_ai_director(projeto, [])
-        return
-
-    # ── Busca os anúncios da API ─────────────────────────────────────────────
     with st.spinner("Conectando ao Meta Ads..."):
-        data = _fetch_meta_ads(meta_account_id, since, until)
-
+        data=_fetch_meta_ads(meta_id,since,until)
     if data.get("erro"):
-        st.markdown(f"""
-        <div class="glass-card" style="border-color:rgba(239,68,68,0.3); background:linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:28px; text-align:center;">
-            <div style="font-size:1.8rem; margin-bottom:12px; color:#EF4444;"><i class="bi bi-exclamation-triangle-fill"></i></div>
-            <h3 style="color:#EF4444; margin:0 0 8px 0; font-size:1rem;">Erro ao Buscar Anúncios</h3>
-            <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:10px 16px; margin-top:12px; display:inline-block; max-width:600px;">
-                <p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace;">{data['erro']}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        return
+        st.error(f"Erro Meta API: {data['erro']}"); return
 
-    # ── Corte estrito: Top 20 por gasto (Pandas) ──────────────────────────
-    import pandas as pd
+    raw=data["ads"]
+    if raw:
+        df=pd.DataFrame(raw); df["spend"]=df["spend"].astype(float)
+        df=df.sort_values("spend",ascending=False).head(20)
+        ads=df.to_dict(orient="records")
+    else: ads=[]
 
-    ads_raw = data["ads"]
-    if ads_raw:
-        df = pd.DataFrame(ads_raw)
-        df["spend"] = df["spend"].astype(float)
-        df = df.sort_values("spend", ascending=False).head(20)
-        ads = df.to_dict(orient="records")
-    else:
-        ads = []
-
+    agg=data.get("agg",{})
     if not ads:
-        st.markdown(f"""
-        <div class="glass-card" style="text-align:center; padding:40px 32px;">
-            <div style="font-size:2rem; margin-bottom:14px; color:#6b7280;"><i class="bi bi-megaphone"></i></div>
-            <h3 style="color:#FAFAFA; margin:0 0 8px 0; font-size:1rem;">Nenhum Criativo com Gasto</h3>
-            <p style="color:#6b7280; font-size:0.85rem; margin:0;">
-                Não foram encontrados anúncios com gasto no período de <strong style="color:#FAFAFA;">{mes_sel}</strong>
-                para a conta <strong style="color:#FAFAFA;">{meta_account_id}</strong>.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        _render_ai_director(projeto, [])
-        return
+        st.markdown(f'<div class="glass-card" style="text-align:center;padding:40px;"><p style="color:#6b7280;font-size:1.5rem;"><i class="bi bi-megaphone"></i></p><h3 style="color:#FAFAFA;font-size:1rem;">Nenhum criativo com gasto em {mes}</h3></div>', unsafe_allow_html=True)
+        _render_ai_director(projeto,[]); return
 
-    # ── Resumo rápido ────────────────────────────────────────────────────────
-    total_spend = sum(a["spend"] for a in ads)
-    total_ativos = sum(1 for a in ads if a["status"] == "ACTIVE")
-
-    st.markdown(f"""
-    <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
-        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
-            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">CRIATIVOS ENCONTRADOS</p>
-            <p style="color:#FAFAFA; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{len(ads)}</p>
-        </div>
-        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
-            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">ATIVOS NO PERÍODO</p>
-            <p style="color:#00d592; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{total_ativos}</p>
-        </div>
-        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
-            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">GASTO TOTAL ({mes_sel})</p>
-            <p style="color:#FAFAFA; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{_fmt_spend(total_spend)}</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Grid de Cards ────────────────────────────────────────────────────────
+    _render_macro_cards(agg)
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    _render_diagnostico(agg, mes)
+    _render_top_performers(ads)
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     _render_ad_cards(ads)
-
-    # ── Diretor de Arte IA ───────────────────────────────────────────────────
     _render_ai_director(projeto, ads)
