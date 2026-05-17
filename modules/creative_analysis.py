@@ -351,17 +351,18 @@ def _show_ad_insights(projeto, ad, agg):
 
 ---
 ## Solicitação (formato Axoly)
-Analise APENAS este criativo e entregue a resposta em Markdown limpo (SEM tabelas), dividida estritamente nas seguintes seções:
+Analise APENAS este criativo e entregue a resposta em Markdown limpo (SEM tabelas), dividida estritamente nas seguintes seções. VOCÊ NÃO PODE INVENTAR MÉTRICAS, USE APENAS OS DADOS ACIMA.
 
 🧠 **Análise por Etapa**
-Se o Tipo for 'Vídeo':
-- Gancho (0-3s): Compare o TSR do criativo com o TSR Médio da conta.
-- Conteúdo (Desenvolvimento): Compare o Hold Rate (Retenção 75%) do criativo com o Hold Rate Médio da conta.
-- Conversão (CTA): Analise o CTR (Todos/Link) para avaliar se o vídeo induz bem ao clique em comparação ao CTR Médio.
-Se o Tipo for 'Imagem' ou Catálogo, IGNORE Gancho e Hold Rate, e avalie apenas a atratividade visual baseada no CTR.
+Se o Tipo for 'Vídeo', siga rigorosamente este formato:
+- **Gancho (0-3s) - Thumb Stop Rate**: Compare o TSR do criativo com o TSR Médio da conta.
+- **Conteúdo (Desenvolvimento) - % que Visualizaram 75% do Vídeo**: Compare o Hold Rate do criativo com o Hold Rate Médio da conta. (Jamais use o CTR aqui).
+- **(CTA) - CTR**: Analise a atratividade do Call to Action comparando o CTR do criativo com o CTR Médio da conta.
+- **Conversão - Compras, ROAS e CPA**: Avalie a lucratividade final cruzando essas 3 métricas com a média da conta.
 
-🛒 **Conversão Final**
-Analise o volume de Vendas, o CPA e o ROAS em relação às médias da conta para determinar a lucratividade real pós-clique.
+Se o Tipo for 'Imagem' ou Catálogo, siga este formato:
+- **(CTA) - CTR**: Analise a atratividade do clique comparando o CTR do criativo com o CTR Médio da conta.
+- **Conversão - Compras, ROAS e CPA**: Avalie a lucratividade final cruzando essas 3 métricas.
 
 ⚠️ **Gargalo Principal**
 Identifique o ponto fraco dominante do criativo baseado nos dados acima.
