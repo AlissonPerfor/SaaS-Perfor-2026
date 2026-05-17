@@ -46,10 +46,13 @@ def _fmt_roas(v): return f"{v:.2f}x".replace(".",",") if v else "0,00x"
 def _init_meta_api():
     try:
         from facebook_business.api import FacebookAdsApi
-        tok = st.secrets.get("meta_ads",{}).get("access_token","").strip('"')
-        aid = st.secrets.get("meta_ads",{}).get("app_id","").strip('"')
-        if not tok: return False
-        FacebookAdsApi.init(aid, "", tok)
+        
+        # 1. Correção Universal das Chaves (Segurança Máxima)
+        meta_token = st.secrets.get('meta_ads', {}).get('access_token', '').strip('"')
+        meta_app_id = st.secrets.get('meta_ads', {}).get('app_id', '').strip('"')
+        
+        if not meta_token: return False
+        FacebookAdsApi.init(meta_app_id, "", meta_token)
         return True
     except Exception as e:
         print(f"[Meta] {e}"); return False
@@ -249,9 +252,17 @@ def _render_ai_director(projeto, ads):
         if guide is None:
             st.warning(f"Guia `{_GUIDE_FILE}` não encontrado em `intelligence_guides/`.")
             return
-        gk=st.secrets.get("gemini",{}).get("api_key","").strip('"')
-        if not gk:
-            st.info("Adicione `[gemini] api_key` no secrets.toml para ativar o copiloto.")
+        # 1. Correção Universal das Chaves (Segurança Máxima)
+        gemini_key = st.secrets.get('gemini', {}).get('api_key', '').strip('"')
+        
+        if not gemini_key:
+            st.markdown("""
+            <div style="padding:20px; text-align:center;">
+                <div style="font-size:1.8rem; margin-bottom:12px; color:#60A5FA;"><i class="bi bi-key"></i></div>
+                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Chave do Gemini Pendente</h4>
+                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">[gemini] api_key</code> no secrets.toml.</p>
+            </div>
+            """, unsafe_allow_html=True)
             return
         nome=get_project_display_name(projeto); ta=len(ads)
         ts=sum(a.get("spend",0) for a in ads)
@@ -306,11 +317,13 @@ def render_criativos():
     st.markdown(f"<p style='color:#6b7280;font-size:0.82rem;text-align:right;margin-bottom:16px;'>Conectado · <strong>act_{meta_id}</strong> · {mes}</p>", unsafe_allow_html=True)
 
     if not _init_meta_api():
-        st.markdown("""<div class="glass-card" style="text-align:center;padding:32px;">
-<p style="color:#60A5FA;font-size:1.5rem;"><i class="bi bi-key-fill"></i></p>
-<h3 style="color:#60A5FA;font-size:1rem;">Credenciais Meta Pendentes</h3>
-<p style="color:#6b7280;font-size:0.82rem;">Adicione <code style="color:#60A5FA;">[meta_ads] access_token</code> no secrets.toml</p>
-</div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="glass-card" style="text-align:center;padding:32px;">
+            <p style="color:#60A5FA;font-size:1.5rem;"><i class="bi bi-key-fill"></i></p>
+            <h3 style="color:#60A5FA;font-size:1rem;">Credenciais Meta Pendentes</h3>
+            <p style="color:#6b7280;font-size:0.82rem;">Adicione <code style="color:#60A5FA;">[meta_ads] access_token</code> no secrets.toml.</p>
+        </div>
+        """, unsafe_allow_html=True)
         _render_ai_director(projeto,[]); return
 
     with st.spinner("Conectando ao Meta Ads..."):
