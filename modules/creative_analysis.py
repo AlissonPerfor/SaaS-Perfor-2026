@@ -183,22 +183,21 @@ def _render_top_performers(ads):
         best=df.loc[df[key].idxmax()]
         url=best.get("preview_url") or _FALLBACK
         with col:
-            st.markdown(f"""
-            <div class="glass-card" style="padding:16px; display:flex; flex-direction:column; height:100%; justify-content:space-between;">
-                <div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                        <span style="font-size:1.1rem;">{title.split(' ')[0]}</span>
-                        <span style="color:#FAFAFA; font-weight:600; font-size:0.85rem;">{' '.join(title.split(' ')[1:])}</span>
-                    </div>
-                    <img src="{url}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
-                    <p style="color:#FAFAFA; font-size:0.85rem; font-weight:500; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{best['nome']}</p>
-                </div>
-                <div>
-                    <p style="color:#6b7280; font-size:0.65rem; font-weight:600; letter-spacing:1px; margin:0 0 2px 0;">{sub}</p>
-                    <p style="color:#00d592; font-size:1.4rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{fmt(best[key])}</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        with col:
+            st.markdown(f"""<div class="glass-card" style="padding:16px; display:flex; flex-direction:column; height:100%; justify-content:space-between;">
+    <div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <span style="font-size:1.1rem;">{title.split(' ')[0]}</span>
+            <span style="color:#FAFAFA; font-weight:600; font-size:0.85rem;">{' '.join(title.split(' ')[1:])}</span>
+        </div>
+        <img src="{url}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
+        <p style="color:#FAFAFA; font-size:0.85rem; font-weight:500; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{best['nome']}</p>
+    </div>
+    <div>
+        <p style="color:#6b7280; font-size:0.65rem; font-weight:600; letter-spacing:1px; margin:0 0 2px 0;">{sub}</p>
+        <p style="color:#00d592; font-size:1.4rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{fmt(best[key])}</p>
+    </div>
+</div>""", unsafe_allow_html=True)
 
 # ── Render: Grid de Criativos com Métricas Dedicadas ─────────────────────────
 
@@ -211,45 +210,44 @@ def _render_ad_cards(ads):
         tc="🎬 Vídeo" if ad.get("creative_type")=="Vídeo" else "🖼️ Imagem"
         url=ad.get("preview_url") or _FALLBACK
         with cols[i%5]:
-            st.markdown(f"""
-            <div class="glass-card" style="padding:14px; height:100%;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <span style="background:{lc}; color:#000; font-size:0.65rem; font-weight:700; padding:3px 10px; border-radius:12px; letter-spacing:0.5px;">{lbl}</span>
-                    <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{tc}</span>
-                </div>
-                
-                <img src="{url}" style="width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
-                
-                <p style="color:#FAFAFA; font-size:0.85rem; font-weight:600; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em;">{ad['nome']}</p>
-                
-                <div style="font-size:0.72rem; line-height:2.0;">
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">CPM</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpm',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">Thumb Stop Rate</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('tsr',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">CTR (Todos)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_all',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">CTR (Link)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_link',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">Compras</span><span style="color:#FAFAFA; font-weight:500;">{int(ad.get('purchases',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">CPA</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpa',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
-                        <span style="color:#9CA3AF;">ROAS</span><span style="color:#00d592; font-weight:600;">{_fmt_roas(ad.get('roas',0))}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding-top:2px;">
-                        <span style="color:#9CA3AF;">Valor Gasto</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('spend',0))}</span>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        with cols[i%5]:
+            st.markdown(f"""<div class="glass-card" style="padding:14px; height:100%;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="background:{lc}; color:#000; font-size:0.65rem; font-weight:700; padding:3px 10px; border-radius:12px; letter-spacing:0.5px;">{lbl}</span>
+        <span style="color:#9CA3AF; font-size:0.75rem; font-weight:500;">{tc}</span>
+    </div>
+    
+    <img src="{url}" style="width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:8px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05);" onerror="this.src='{_FALLBACK}'" />
+    
+    <p style="color:#FAFAFA; font-size:0.85rem; font-weight:600; margin:0 0 16px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em;">{ad['nome']}</p>
+    
+    <div style="font-size:0.72rem; line-height:2.0;">
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">CPM</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpm',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">Thumb Stop Rate</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('tsr',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">CTR (Todos)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_all',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">CTR (Link)</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_pct(ad.get('ctr_link',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">Compras</span><span style="color:#FAFAFA; font-weight:500;">{int(ad.get('purchases',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">CPA</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('cpa',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:4px; margin-bottom:4px;">
+            <span style="color:#9CA3AF;">ROAS</span><span style="color:#00d592; font-weight:600;">{_fmt_roas(ad.get('roas',0))}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:2px;">
+            <span style="color:#9CA3AF;">Valor Gasto</span><span style="color:#FAFAFA; font-weight:500;">{_fmt_brl(ad.get('spend',0))}</span>
+        </div>
+    </div>
+</div>""", unsafe_allow_html=True)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
 
@@ -330,7 +328,7 @@ Analise os criativos e entregue:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def render_criativos():
-    render_cargo_badge("✦ Criativos Meta Ads","Análise de criativos em tempo real · Axoly Style")
+    render_cargo_badge("✦ Criativos Meta Ads","Análise de criativos em tempo real")
     projeto=get_active_project()
     if projeto is None:
         st.markdown('<div class="glass-card" style="text-align:center;padding:40px;"><h3 style="color:#FAFAFA;">Selecione um Projeto</h3><p style="color:#6b7280;">Escolha um projeto na sidebar.</p></div>', unsafe_allow_html=True)
