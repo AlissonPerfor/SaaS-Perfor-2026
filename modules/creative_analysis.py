@@ -90,7 +90,7 @@ def _fetch_meta_ads(account_id, since, until):
             tsr=(v3s/imp*100) if imp>0 else 0
             
             # Tenta pegar das actions ou do field direto
-            v75=int(_xval(acts,("video_p75_watched_actions",))) or int(_xval(r.get("video_p75_watched_actions",[])))
+            v75=int(_xval(acts,("video_p75_watched_actions",))) or int(_xval(r.get("video_p75_watched_actions",[]), ("video_p75_watched_actions",)))
             hold_rate=(v75/imp*100) if imp>0 else 0
 
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
