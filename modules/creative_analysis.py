@@ -99,10 +99,23 @@ def _fetch_meta_ads(account_id, since, until):
                 c_id=ao.get("creative",{}).get("id")
                 if c_id:
                     from facebook_business.adobjects.adcreative import AdCreative
-                    cr=AdCreative(c_id).api_get(fields=["image_url","thumbnail_url","video_id"])
+                    cr=AdCreative(c_id).api_get(fields=["image_url","thumbnail_url","video_id","object_story_spec"])
+                    oss = cr.get("object_story_spec", {})
+                    
+                    # Tenta buscar a imagem original (alta resolução) nas specs
+                    high_res = None
+                    if "video_data" in oss: high_res = oss["video_data"].get("image_url")
+                    elif "link_data" in oss: high_res = oss["link_data"].get("picture")
+                    elif "photo_data" in oss: high_res = oss["photo_data"].get("url")
+                    
                     iu=cr.get("image_url"); tu=cr.get("thumbnail_url"); vi=cr.get("video_id")
-                    if vi or tu: ctype="Vídeo"; preview=iu or tu  # Prioriza iu (high-res)
-                    else: ctype="Imagem"; preview=iu or tu
+                    
+                    if vi or "video_data" in oss: 
+                        ctype="Vídeo"
+                        preview = high_res or iu or tu
+                    else: 
+                        ctype="Imagem"
+                        preview = high_res or iu or tu
             except: pass
 
             result["ads"].append({"nome":r.get("ad_name","?"),"status":status,"spend":spend,
