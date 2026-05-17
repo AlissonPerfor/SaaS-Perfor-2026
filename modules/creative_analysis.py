@@ -286,21 +286,35 @@ def _build_brain(p):
 ### Dores: Medo de compra online, atendimento ruim, dúvida de qualidade, comparação de preço
 ### Soluções: Garantia, frete grátis, depoimentos reais, preço reposicionado, autoridade técnica"""
 
+def _call_gemini(system, user):
+    import os
+    from google import genai
+    
+    key = ""
+    try: key = st.secrets["gemini"]["api_key"]
+    except: pass
+    if not key:
+        try: key = st.secrets["GEMINI_API_KEY"]
+        except: pass
+    if not key:
+        key = os.environ.get("GEMINI_API_KEY", "")
+        
+    if isinstance(key, str): key = key.strip('"')
+    
+    if not key:
+        raise ValueError("Chave do Gemini ausente no secrets.toml ou variaveis de ambiente.")
+    
+    client=genai.Client(api_key=key)
+    r=client.models.generate_content(model="gemini-2.5-flash",contents=user,
+        config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
+    return r.text
+
 @st.dialog("🧠 Axoly Creative Insights", width="large")
 def _show_ad_insights(projeto, ad):
     st.markdown(f"**Analisando:** `{ad['nome']}`")
     guide=get_agent_prompt(_GUIDE_FILE)
     if not guide:
         st.error(f"Guia `{_GUIDE_FILE}` não encontrado.")
-        return
-    import os
-    gemini_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    if not gemini_key:
-        gemini_key = st.secrets.get("gemini", {}).get("api_key", "")
-    if isinstance(gemini_key, str): gemini_key = gemini_key.strip('"')
-    
-    if not gemini_key:
-        st.error("Chave do Gemini Pendente. Adicione GEMINI_API_KEY no secrets.toml.")
         return
 
     msg = f"""## Dados de Entrada
