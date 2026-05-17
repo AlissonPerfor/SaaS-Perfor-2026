@@ -292,8 +292,13 @@ def _build_table(ads):
     return h
 
 def _call_gemini(system, user):
+    import os
     from google import genai
-    key=st.secrets.get("gemini",{}).get("api_key","").strip('"')
+    key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not key:
+        key = st.secrets.get("gemini", {}).get("api_key", "")
+    if isinstance(key, str): key = key.strip('"')
+    
     client=genai.Client(api_key=key)
     r=client.models.generate_content(model="gemini-2.5-flash",contents=user,
         config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
@@ -308,15 +313,18 @@ def _render_ai_director(projeto, ads):
         if guide is None:
             st.warning(f"Guia `{_GUIDE_FILE}` não encontrado em `intelligence_guides/`.")
             return
-        # 1. Correção Universal das Chaves (Segurança Máxima)
-        gemini_key = st.secrets.get('gemini', {}).get('api_key', '').strip('"')
+        import os
+        gemini_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if not gemini_key:
+            gemini_key = st.secrets.get("gemini", {}).get("api_key", "")
+        if isinstance(gemini_key, str): gemini_key = gemini_key.strip('"')
         
         if not gemini_key:
             st.markdown("""
             <div style="padding:20px; text-align:center;">
                 <div style="font-size:1.8rem; margin-bottom:12px; color:#60A5FA;"><i class="bi bi-key"></i></div>
                 <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Chave do Gemini Pendente</h4>
-                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">[gemini] api_key</code> no secrets.toml.</p>
+                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">GEMINI_API_KEY</code> no secrets.toml do Streamlit Cloud.</p>
             </div>
             """, unsafe_allow_html=True)
             return
