@@ -67,7 +67,9 @@ def _get_gc() -> gspread.Client:
     except FileNotFoundError:
         # Em produção (Streamlit Cloud), lê do secrets.toml
         try:
-            creds_dict = dict(st.secrets["google"])
+            # st.secrets retorna AttrDict — converte para dict puro via JSON roundtrip
+            raw = st.secrets["google"]
+            creds_dict = json.loads(json.dumps(dict(raw)))
         except KeyError:
             raise RuntimeError(
                 "Credenciais Google não encontradas. "

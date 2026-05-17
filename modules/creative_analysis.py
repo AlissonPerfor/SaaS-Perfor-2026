@@ -84,26 +84,9 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
     """
     Busca os TOP 20 anúncios por gasto no Meta Ads dentro do período.
 
-    Estratégia de performance:
-      - UMA ÚNICA requisição get_insights(level='ad') na conta inteira
-      - time_range filtra no servidor (sem baixar dados fora do período)
-      - sort=['spend_descending'] + limit=20 retorna apenas os maiores
-      - Só depois busca o criativo de cada um dos 20 (máx. 20 calls extras)
-
-    Retorna:
-    {
-        "ads": [
-            {
-                "nome": str,
-                "status": str,
-                "spend": float,
-                "preview_url": str | None,
-                "creative_type": "Imagem" | "Vídeo" | "Desconhecido",
-            },
-            ...
-        ],
-        "erro": str | None,
-    }
+    Estratégia:
+      1) get_insights(level='ad') → top 20 por spend (1 call)
+      2) Ad.api_get com creative{image_url,thumbnail_url,video_id} (1 call/ad)
     """
     result = {"ads": [], "erro": None}
 
@@ -111,35 +94,26 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
         from facebook_business.adobjects.adaccount import AdAccount
         from facebook_business.adobjects.ad import Ad
 
-        # Garante formato act_XXXXXXXX
         if not account_id.startswith("act_"):
             account_id = f"act_{account_id}"
 
         account = AdAccount(account_id)
 
-        # ── 1) ÚNICA requisição: insights no nível de ad, já ordenados ───
+        # ── 1) Top 20 por gasto — única requisição de insights ───────────
         insights = account.get_insights(
-            fields=[
-                "ad_id",
-                "ad_name",
-                "spend",
-            ],
+            fields=["ad_id", "ad_name", "spend"],
             params={
                 "level": "ad",
                 "time_range": {"since": since, "until": until},
                 "sort": ["spend_descending"],
                 "limit": 20,
                 "filtering": [
-                    {
-                        "field": "spend",
-                        "operator": "GREATER_THAN",
-                        "value": "0",
-                    }
+                    {"field": "spend", "operator": "GREATER_THAN", "value": "0"}
                 ],
             },
         )
 
-        # ── 2) Para cada insight, busca o criativo (máx. 20 calls) ───────
+        # ── 2) Para cada insight, busca ad com creative expandido ────────
         for row in insights:
             ad_id = row.get("ad_id")
             ad_name = row.get("ad_name", "Sem nome")
@@ -149,44 +123,31 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
                 continue
 
             preview_url = None
-            creative_type = "Imagem"  # default seguro
+            creative_type = "Imagem"
             ad_status = "ACTIVE"
 
             try:
                 ad_obj = Ad(ad_id).api_get(
                     fields=[
-                        Ad.Field.status,
-                        Ad.Field.creative,
+                        "name",
+                        "status",
+                        "creative{image_url,thumbnail_url,video_id}",
                     ]
                 )
                 ad_status = ad_obj.get("status", "ACTIVE")
 
-                creative_data = ad_obj.get("creative", {})
-                creative_id = creative_data.get("id") if isinstance(creative_data, dict) else None
+                creative = ad_obj.get("creative") or {}
 
-                if creative_id:
-                    from facebook_business.adobjects.adcreative import AdCreative
+                image_url = creative.get("image_url")
+                thumbnail_url = creative.get("thumbnail_url")
+                video_id = creative.get("video_id")
 
-                    creative = AdCreative(creative_id).api_get(
-                        fields=[
-                            "body",
-                            "image_url",
-                            "thumbnail_url",
-                            "video_id",
-                            "effective_object_story_id",
-                        ]
-                    )
-                    image_url = creative.get("image_url")
-                    thumbnail_url = creative.get("thumbnail_url")
-                    video_id = creative.get("video_id")
-
-                    # ── Detecção de formato ──────────────────────────
-                    if video_id or thumbnail_url:
-                        creative_type = "Vídeo"
-                        preview_url = thumbnail_url or image_url
-                    else:
-                        creative_type = "Imagem"
-                        preview_url = image_url or thumbnail_url
+                if video_id or thumbnail_url:
+                    creative_type = "Vídeo"
+                    preview_url = thumbnail_url or image_url
+                else:
+                    creative_type = "Imagem"
+                    preview_url = image_url
             except Exception:
                 pass
 
