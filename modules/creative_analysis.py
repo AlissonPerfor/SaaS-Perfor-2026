@@ -183,7 +183,6 @@ def _render_top_performers(ads):
         best=df.loc[df[key].idxmax()]
         url=best.get("preview_url") or _FALLBACK
         with col:
-        with col:
             st.markdown(f"""<div class="glass-card" style="padding:16px; display:flex; flex-direction:column; height:100%; justify-content:space-between;">
     <div>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
@@ -209,7 +208,6 @@ def _render_ad_cards(ads):
         lc="#00d592" if ad["status"]=="ACTIVE" else "#FCD34D"
         tc="🎬 Vídeo" if ad.get("creative_type")=="Vídeo" else "🖼️ Imagem"
         url=ad.get("preview_url") or _FALLBACK
-        with cols[i%5]:
         with cols[i%5]:
             st.markdown(f"""<div class="glass-card" style="padding:14px; height:100%;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
