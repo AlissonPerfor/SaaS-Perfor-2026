@@ -148,9 +148,8 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
             if spend <= 0:
                 continue
 
-            # Busca dados do ad (status + creative id) em uma call
             preview_url = None
-            creative_type = "Desconhecido"
+            creative_type = "Imagem"  # default seguro
             ad_status = "ACTIVE"
 
             try:
@@ -170,23 +169,24 @@ def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
 
                     creative = AdCreative(creative_id).api_get(
                         fields=[
+                            "body",
                             "image_url",
                             "thumbnail_url",
                             "video_id",
+                            "effective_object_story_id",
                         ]
                     )
                     image_url = creative.get("image_url")
                     thumbnail_url = creative.get("thumbnail_url")
                     video_id = creative.get("video_id")
 
-                    if video_id:
+                    # ── Detecção de formato ──────────────────────────
+                    if video_id or thumbnail_url:
                         creative_type = "Vídeo"
                         preview_url = thumbnail_url or image_url
-                    elif image_url:
-                        creative_type = "Imagem"
-                        preview_url = image_url
                     else:
-                        preview_url = thumbnail_url
+                        creative_type = "Imagem"
+                        preview_url = image_url or thumbnail_url
             except Exception:
                 pass
 
@@ -228,54 +228,54 @@ def _status_label(raw_status: str) -> tuple[str, str, str]:
 
 # ── Renderização dos Cards de Criativos ──────────────────────────────────────
 
+_FALLBACK_IMG = "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=60"
+
+
 def _render_ad_cards(ads: list[dict]) -> None:
-    """Renderiza os cards dos anúncios em um grid de 3 colunas."""
+    """Renderiza os cards dos anúncios em um grid de 3 colunas usando st.image."""
     cols = st.columns(3, gap="medium")
 
     for i, ad in enumerate(ads):
         label, status_color, status_bg = _status_label(ad["status"])
         spend_str = _fmt_spend(ad["spend"])
-        creative_type = ad.get("creative_type", "Desconhecido")
-        preview_url = ad.get("preview_url")
+        creative_type = ad.get("creative_type", "Imagem")
+        preview_url = ad.get("preview_url") or _FALLBACK_IMG
 
         # Ícone do tipo de criativo
         if creative_type == "Vídeo":
             type_icon = '<i class="bi bi-camera-video-fill"></i>'
-        elif creative_type == "Imagem":
+        else:
             type_icon = '<i class="bi bi-image-fill"></i>'
-        else:
-            type_icon = '<i class="bi bi-file-earmark-play"></i>'
-
-        # Bloco de imagem ou placeholder
-        if preview_url:
-            image_block = f'''<img src="{preview_url}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'" />'''
-        else:
-            image_block = '''<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px;">
-                <i class="bi bi-image" style="font-size:2rem; color:#374151;"></i>
-                <span style="font-size:0.7rem; color:#4b5563;">Preview indisponível</span>
-            </div>'''
 
         with cols[i % 3]:
+            # ── Card container (abertura) ──
             st.markdown(f"""
-            <div class="glass-card" style="padding: 16px; margin-bottom: 24px; display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
-                <div>
-                    <div style="width: 100%; height: 180px; border-radius: 8px; margin-bottom: 16px; overflow: hidden; background-color: #1f2937;">
-                        {image_block}
+            <div class="glass-card" style="padding: 16px; margin-bottom: 24px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+            """, unsafe_allow_html=True)
+
+            # ── Preview real via st.image ──
+            try:
+                st.image(preview_url, use_container_width=True)
+            except Exception:
+                st.image(_FALLBACK_IMG, use_container_width=True)
+
+            # ── Metadados + status ──
+            st.markdown(f"""
+                <h4 style="margin: 8px 0 10px 0; font-size: 0.95rem; color: #FAFAFA; line-height: 1.3;">{ad['nome']}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.9rem; color:#9CA3AF;">{type_icon}</span>
+                        <span style="font-size: 0.8rem; color: #9CA3AF;">{creative_type}</span>
                     </div>
-                    <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: #FAFAFA; line-height: 1.3; min-height: 2.5em;">{ad['nome']}</h4>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-size: 0.9rem; color:#9CA3AF;">{type_icon}</span>
-                            <span style="font-size: 0.8rem; color: #9CA3AF;">{creative_type}</span>
-                        </div>
-                        <span style="font-size: 0.9rem; font-weight: 600; color: #FAFAFA; letter-spacing: -0.3px;">
-                            <i class="bi bi-cash" style="margin-right:3px; color:#00d592;"></i>{spend_str}
-                        </span>
-                    </div>
+                    <span style="font-size: 0.9rem; font-weight: 600; color: #FAFAFA; letter-spacing: -0.3px;">
+                        <i class="bi bi-cash" style="margin-right:3px; color:#00d592;"></i>{spend_str}
+                    </span>
                 </div>
                 <div style="display: inline-block; align-self: flex-start; padding: 4px 12px; border-radius: 20px; background: {status_bg}; border: 1px solid {status_color};">
                     <span style="color: {status_color}; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">{label}</span>
                 </div>
+            </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -558,7 +558,17 @@ access_token = "SEU_ACCESS_TOKEN"</code>
         """, unsafe_allow_html=True)
         return
 
-    ads = data["ads"]
+    # ── Corte estrito: Top 20 por gasto (Pandas) ──────────────────────────
+    import pandas as pd
+
+    ads_raw = data["ads"]
+    if ads_raw:
+        df = pd.DataFrame(ads_raw)
+        df["spend"] = df["spend"].astype(float)
+        df = df.sort_values("spend", ascending=False).head(20)
+        ads = df.to_dict(orient="records")
+    else:
+        ads = []
 
     if not ads:
         st.markdown(f"""
