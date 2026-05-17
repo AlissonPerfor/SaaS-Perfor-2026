@@ -3,3 +3,4 @@ supabase
 gspread
 google-auth
 facebook-business
+google-genai
