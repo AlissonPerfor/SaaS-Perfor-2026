@@ -125,7 +125,7 @@ def _fetch_meta_ads(account_id, since, until):
                         preview = high_res or iu or tu
             except: pass
 
-            result["ads"].append({"nome":r.get("ad_name","?"),"status":status,"spend":spend,
+            result["ads"].append({"ad_id":r.get("ad_id"),"nome":r.get("ad_name","?"),"status":status,"spend":spend,
                 "preview_url":preview,"creative_type":ctype,"cpm":cpm,"tsr":tsr,
                 "ctr_all":ctr_all,"ctr_link":ctr_link,"purchases":purchases,
                 "cpa":cpa,"roas":roas,"permalink":permalink})
@@ -274,7 +274,7 @@ def _render_ad_cards(ads):
             if link:
                 st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                 st.link_button("🔗 Ver Material Original", url=link, use_container_width=True)
-            if st.button("🧠 Rodar Raio-X da IA", key=f"rx_{ad['ad_id']}_{i}", use_container_width=True):
+            if st.button("🧠 Rodar Raio-X da IA", key=f"rx_{ad.get('ad_id', i)}_{i}", use_container_width=True):
                 _show_ad_insights(get_active_project(), ad)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
