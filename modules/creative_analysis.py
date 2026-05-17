@@ -8,6 +8,7 @@ o meta_account_id do projeto selecionado na sidebar.
 """
 
 import calendar
+import json
 from datetime import date
 from typing import Optional
 
@@ -61,18 +62,17 @@ def _init_meta_api() -> bool:
     try:
         from facebook_business.api import FacebookAdsApi
 
-        meta_secrets = st.secrets.get("meta")
+        meta_secrets = st.secrets.get("meta_ads")
         if not meta_secrets:
             return False
 
         access_token = meta_secrets.get("access_token", "")
         app_id = meta_secrets.get("app_id", "")
-        app_secret = meta_secrets.get("app_secret", "")
 
         if not access_token:
             return False
 
-        FacebookAdsApi.init(app_id, app_secret, access_token)
+        FacebookAdsApi.init(app_id, "", access_token)
         return True
     except Exception as e:
         print(f"[Meta API] Erro ao inicializar SDK: {e}")
@@ -277,19 +277,85 @@ def _render_ad_cards(ads: list[dict]) -> None:
             """, unsafe_allow_html=True)
 
 
+# ── Integração Gemini — Chamada de IA ────────────────────────────────────────
+
+def _build_brain_context(projeto: dict) -> str:
+    """Monta o contexto simulado do Perfor Brain (Personas, Dores, Soluções)."""
+    nome = get_project_display_name(projeto)
+    nicho = projeto.get("nicho") or projeto.get("categoria") or "e-commerce"
+    return f"""## Perfor Brain — {nome}
+**Nicho:** {nicho}
+
+### Buyer Personas Mapeadas
+1. **O Cliente Inseguro** — Tem interesse mas precisa de muita prova social e garantia para converter.
+2. **O Comprador Prático** — Busca agilidade, frete rápido e praticidade no checkout.
+3. **O Buscador de Resultado** — Foco total nos benefícios tangíveis e transformação real.
+4. **O Comparador de Preço** — Pesquisa em vários concorrentes antes de decidir.
+5. **O Cliente Premium** — Prioriza qualidade e experiência acima do preço.
+
+### Dores Mapeadas
+- Medo de comprar online e não receber o produto ou receber algo diferente.
+- Frustração com atendimento pós-venda ruim em concorrentes.
+- Dúvida sobre a eficácia/qualidade real do produto.
+- Comparação constante de preço entre marcas similares.
+- Falta de confiança em marcas novas ou pouco conhecidas.
+
+### Soluções e Alavancas do Produto
+- Garantia incondicional de satisfação (7-30 dias).
+- Frete grátis ou frete expresso como diferencial competitivo.
+- Depoimentos reais e resultados comprovados de clientes.
+- Preço reposicionado ("menos de R$ X por dia").
+- Certificações, laudos técnicos e autoridade do especialista.
+"""
+
+
+def _build_ads_table(ads: list[dict]) -> str:
+    """Formata os anúncios ativos como tabela Markdown para o prompt."""
+    if not ads:
+        return "_Nenhum anúncio com gasto encontrado no período._"
+    lines = ["| # | Nome do Anúncio | Status | Tipo | Gasto (R$) |"]
+    lines.append("|---|---|---|---|---|")
+    for i, ad in enumerate(ads, 1):
+        status_label = {"ACTIVE": "Ativo", "PAUSED": "Pausado"}.get(ad["status"], ad["status"])
+        lines.append(
+            f"| {i} | {ad['nome']} | {status_label} | {ad.get('creative_type', '—')} | {ad['spend']:.2f} |"
+        )
+    return "\n".join(lines)
+
+
+def _call_gemini(system_prompt: str, user_message: str) -> str:
+    """Chama a API do Gemini e retorna a resposta em texto."""
+    from google import genai
+
+    api_key = st.secrets["gemini"]["api_key"]
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model="gemini-2.5-pro",
+        contents=user_message,
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.8,
+            max_output_tokens=4096,
+        ),
+    )
+    return response.text
+
+
 # ── Componente Visual: Diretor de Arte Inteligente ───────────────────────────
 
 def _render_ai_director(projeto: dict, ads: list[dict]) -> None:
     """
     Renderiza o expander do Diretor de Arte Inteligente (Matriz Criativa).
-    Carrega o guia de inteligência do arquivo .md e estrutura a interface
-    para a futura chamada de IA.
+    Carrega o guia de inteligência como System Prompt e cruza com dados
+    de anúncios + Perfor Brain para gerar roteiros via Gemini.
     """
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
     with st.expander("🎬 Diretor de Arte Inteligente (Matriz Criativa)", expanded=False):
         prompt_guide = get_agent_prompt(_GUIDE_FILE)
 
+        # ── Guia não encontrado ──────────────────────────────────────────
         if prompt_guide is None:
             st.markdown(f"""
             <div style="padding:20px; text-align:center;">
@@ -306,42 +372,77 @@ def _render_ai_director(projeto: dict, ads: list[dict]) -> None:
                 </p>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            # Interface preparada para a chamada de IA
-            nome_projeto = get_project_display_name(projeto)
-            total_ads = len(ads)
-            total_spend = sum(ad.get("spend", 0) for ad in ads)
-            ativos = sum(1 for ad in ads if ad["status"] == "ACTIVE")
+            return
 
-            st.markdown(f"""
-            <div style="padding:16px 20px; background:rgba(0,213,146,0.04); border:1px solid rgba(0,213,146,0.15); border-radius:10px; margin-bottom:16px;">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                    <i class="bi bi-cpu" style="font-size:1.2rem; color:#00d592;"></i>
-                    <span style="color:#FAFAFA; font-weight:600; font-size:0.9rem;">Copiloto Criativo — {nome_projeto}</span>
-                </div>
-                <p style="color:#9CA3AF; font-size:0.8rem; margin:0; line-height:1.6;">
-                    <strong style="color:#FAFAFA;">{total_ads}</strong> criativos analisados ·
-                    <strong style="color:#FAFAFA;">{ativos}</strong> ativos ·
-                    Investimento total: <strong style="color:#00d592;">{_fmt_spend(total_spend)}</strong>
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
+        # ── Chave Gemini não configurada ─────────────────────────────────
+        gemini_secrets = st.secrets.get("gemini")
+        if not gemini_secrets or not gemini_secrets.get("api_key"):
             st.markdown("""
-            <div style="padding:16px 20px; background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.15); border-radius:10px;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    <i class="bi bi-lightbulb-fill" style="color:#3B82F6;"></i>
-                    <span style="color:#FAFAFA; font-weight:600; font-size:0.85rem;">Análise via IA</span>
-                </div>
-                <p style="color:#6b7280; font-size:0.78rem; margin:0; line-height:1.6;">
-                    O guia de inteligência foi carregado com sucesso. Configure a chave de API da OpenAI/Gemini
-                    nos Secrets para ativar a geração automática da Matriz Criativa.
-                </p>
+            <div style="padding:20px; text-align:center;">
+                <div style="font-size:1.8rem; margin-bottom:12px; color:#60A5FA;"><i class="bi bi-key"></i></div>
+                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Chave do Gemini Pendente</h4>
+                <p style="color:#6b7280; font-size:0.82rem; margin:0;">Adicione <code style="color:#60A5FA;">[gemini] api_key</code> no secrets.toml.</p>
             </div>
             """, unsafe_allow_html=True)
+            return
 
-            # Futuro: botão para disparar análise via LLM
-            # st.button("⚡ Gerar Matriz Criativa", key="btn_gen_matrix")
+        # ── Header com métricas ──────────────────────────────────────────
+        nome_projeto = get_project_display_name(projeto)
+        total_ads = len(ads)
+        total_spend = sum(ad.get("spend", 0) for ad in ads)
+        ativos = sum(1 for ad in ads if ad["status"] == "ACTIVE")
+
+        st.markdown(f"""
+        <div style="padding:16px 20px; background:rgba(0,213,146,0.04); border:1px solid rgba(0,213,146,0.15); border-radius:10px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <i class="bi bi-cpu" style="font-size:1.2rem; color:#00d592;"></i>
+                <span style="color:#FAFAFA; font-weight:600; font-size:0.9rem;">Copiloto Criativo — {nome_projeto}</span>
+            </div>
+            <p style="color:#9CA3AF; font-size:0.8rem; margin:0; line-height:1.6;">
+                <strong style="color:#FAFAFA;">{total_ads}</strong> criativos analisados ·
+                <strong style="color:#FAFAFA;">{ativos}</strong> ativos ·
+                Investimento total: <strong style="color:#00d592;">{_fmt_spend(total_spend)}</strong>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Botão de Geração ─────────────────────────────────────────────
+        if st.button("⚡ Gerar Matriz Criativa via Gemini", key="btn_gen_matrix", use_container_width=True):
+            brain_ctx = _build_brain_context(projeto)
+            ads_table = _build_ads_table(ads)
+
+            user_message = f"""## Dados de Entrada para Análise
+
+### Contexto Estratégico (Perfor Brain)
+{brain_ctx}
+
+### Anúncios Ativos no Meta Ads (período selecionado)
+{ads_table}
+
+---
+
+## Solicitação
+Com base no protocolo de auditoria do guia, analise os anúncios acima e entregue:
+1. **Auditoria rápida** dos criativos atuais (winners vs. fadiga).
+2. **3 roteiros novos de vídeo** (1 DSB, 1 Full Funnel, 1 UGC) seguindo a anatomia Gancho → Conteúdo → CTA.
+3. **2 briefings de imagem/carrossel** para remarketing (Prova Social + Objeção Direta).
+4. Para cada briefing, indique o Pilar, Persona Alvo, Gancho, Conteúdo e CTA conforme o formato de entrega.
+"""
+            with st.spinner("Gerando Matriz Criativa com Gemini..."):
+                try:
+                    resposta = _call_gemini(
+                        system_prompt=prompt_guide,
+                        user_message=user_message,
+                    )
+                    st.session_state["_ai_matrix_result"] = resposta
+                except Exception as e:
+                    st.error(f"Erro na chamada do Gemini: {e}")
+
+        # ── Exibe resultado salvo ────────────────────────────────────────
+        resultado = st.session_state.get("_ai_matrix_result")
+        if resultado:
+            st.markdown("<hr style='border:none; border-top:1px solid #1f2937; margin:16px 0;'>", unsafe_allow_html=True)
+            st.markdown(resultado)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -423,14 +524,13 @@ def render_criativos() -> None:
             </p>
             <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:14px 20px; display:inline-block; max-width:600px; text-align:left;">
                 <p style="color:#60A5FA; font-size:0.72rem; margin:0 0 8px 0; letter-spacing:1px; font-weight:600;">SECRETS.TOML</p>
-                <code style="color:#9CA3AF; font-size:0.78rem; line-height:1.8; white-space:pre; font-family:'Fira Code', monospace;">[meta]
+                <code style="color:#9CA3AF; font-size:0.78rem; line-height:1.8; white-space:pre; font-family:'Fira Code', monospace;">[meta_ads]
 app_id = "SEU_APP_ID"
-app_secret = "SEU_APP_SECRET"
 access_token = "SEU_ACCESS_TOKEN"</code>
             </div>
             <p style="color:#4b5563; font-size:0.72rem; margin:16px 0 0 0;">
                 <i class="bi bi-shield-lock" style="margin-right:3px;"></i>
-                Adicione na seção <code style="color:#60A5FA;">[meta]</code> do <code style="color:#60A5FA;">.streamlit/secrets.toml</code>
+                Adicione na seção <code style="color:#60A5FA;">[meta_ads]</code> do <code style="color:#60A5FA;">.streamlit/secrets.toml</code>
             </p>
         </div>
         """, unsafe_allow_html=True)
