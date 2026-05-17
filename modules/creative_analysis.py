@@ -71,13 +71,13 @@ def _fetch_meta_ads(account_id, since, until):
         rows = account.get_insights(
             fields=["ad_id","ad_name","spend","impressions","cpm","ctr",
                     "inline_link_click_ctr","actions","cost_per_action_type",
-                    "purchase_roas"],
+                    "purchase_roas","video_p75_watched_actions"],
             params={"level":"ad","time_range":{"since":since,"until":until},
                     "sort":["spend_descending"],"limit":20,
                     "filtering":[{"field":"spend","operator":"GREATER_THAN","value":"0"}]},
         )
 
-        t_spend=t_imp=t_purchases=n=0; s_cpm=s_ctr=s_lctr=s_tsr=s_roas=0
+        t_spend=t_imp=t_purchases=n=n_vid=0; s_cpm=s_ctr=s_lctr=s_tsr=s_roas=s_hold=0
         for r in rows:
             spend=float(r.get("spend",0)); imp=int(r.get("impressions",0))
             cpm=float(r.get("cpm",0)); ctr_all=float(r.get("ctr",0))
@@ -88,9 +88,13 @@ def _fetch_meta_ads(account_id, since, until):
             roas=_xval(r.get("purchase_roas"))
             v3s=int(_xval(acts,("video_view",)))
             tsr=(v3s/imp*100) if imp>0 else 0
+            
+            # Tenta pegar das actions ou do field direto
+            v75=int(_xval(acts,("video_p75_watched_actions",))) or int(_xval(r.get("video_p75_watched_actions",[])))
+            hold_rate=(v75/imp*100) if imp>0 else 0
 
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
-            s_cpm+=cpm; s_ctr+=ctr_all; s_lctr+=ctr_link; s_tsr+=tsr; s_roas+=roas
+            s_cpm+=cpm; s_ctr+=ctr_all; s_lctr+=ctr_link; s_roas+=roas
 
             preview=None; ctype="Imagem"; status="ACTIVE"; permalink=None
             try:
@@ -124,14 +128,19 @@ def _fetch_meta_ads(account_id, since, until):
                         ctype="Imagem"
                         preview = high_res or iu or tu
             except: pass
+            
+            if ctype == "Vídeo":
+                s_tsr += tsr; s_hold += hold_rate; n_vid += 1
 
             result["ads"].append({"ad_id":r.get("ad_id"),"nome":r.get("ad_name","?"),"status":status,"spend":spend,
-                "preview_url":preview,"creative_type":ctype,"cpm":cpm,"tsr":tsr,
+                "preview_url":preview,"creative_type":ctype,"cpm":cpm,"tsr":tsr,"hold_rate":hold_rate,
                 "ctr_all":ctr_all,"ctr_link":ctr_link,"purchases":purchases,
                 "cpa":cpa,"roas":roas,"permalink":permalink})
 
         if n>0:
-            result["agg"]={"cpm":s_cpm/n,"tsr":s_tsr/n,"ctr_all":s_ctr/n,"ctr_link":s_lctr/n,
+            avg_tsr = s_tsr/n_vid if n_vid>0 else 0
+            avg_hold = s_hold/n_vid if n_vid>0 else 0
+            result["agg"]={"cpm":s_cpm/n,"tsr":avg_tsr,"hold_rate":avg_hold,"ctr_all":s_ctr/n,"ctr_link":s_lctr/n,
                 "purchases":t_purchases,"cpa":t_spend/t_purchases if t_purchases>0 else 0,
                 "roas":s_roas/n,"spend":t_spend}
     except Exception as e:
@@ -223,7 +232,7 @@ def _render_top_performers(ads):
 
 # ── Render: Grid de Criativos com Métricas Dedicadas ─────────────────────────
 
-def _render_ad_cards(ads):
+def _render_ad_cards(ads, agg):
     st.markdown(f"<p style='color:#6b7280;font-size:0.85rem;margin:20px 0 12px 0;'><strong style='color:#FAFAFA;'>Criativos ({len(ads)})</strong> — Top por gasto</p>", unsafe_allow_html=True)
     cols=st.columns(5, gap="small")
     for i,ad in enumerate(ads):
@@ -275,7 +284,7 @@ def _render_ad_cards(ads):
                 st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                 st.link_button("🔗 Ver Material Original", url=link, use_container_width=True)
             if st.button("🧠 Rodar Raio-X da IA", key=f"rx_{ad.get('ad_id', i)}_{i}", use_container_width=True):
-                _show_ad_insights(get_active_project(), ad)
+                _show_ad_insights(get_active_project(), ad, agg)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
 
@@ -310,7 +319,7 @@ def _call_gemini(system, user):
     return r.text
 
 @st.dialog("🧠 Axoly Creative Insights", width="large")
-def _show_ad_insights(projeto, ad):
+def _show_ad_insights(projeto, ad, agg):
     st.markdown(f"**Analisando:** `{ad['nome']}`")
     guide=get_agent_prompt(_GUIDE_FILE)
     if not guide:
@@ -320,13 +329,22 @@ def _show_ad_insights(projeto, ad):
     msg = f"""## Dados de Entrada
 {_build_brain(projeto)}
 
+### Benchmarks da Conta (Média Atual)
+- TSR Médio: {_fmt_pct(agg.get('tsr', 0))}
+- Hold Rate Médio: {_fmt_pct(agg.get('hold_rate', 0))}
+- CTR Médio: {_fmt_pct(agg.get('ctr_all', 0))}
+- CPA Médio: {_fmt_brl(agg.get('cpa', 0))}
+- ROAS Médio: {_fmt_roas(agg.get('roas', 0))}
+
 ### Desempenho do Anúncio (Isolado)
 - Nome: {ad['nome']}
+- Tipo: {ad.get('creative_type', 'Imagem')}
 - Investimento: {_fmt_brl(ad['spend'])}
 - CPM: {_fmt_brl(ad.get('cpm',0))}
-- Thumb Stop Rate: {_fmt_pct(ad.get('tsr',0))}
-- CTR (Todos): {_fmt_pct(ad.get('ctr_all',0))}
-- CTR (Link): {_fmt_pct(ad.get('ctr_link',0))}
+- Thumb Stop Rate (Gancho): {_fmt_pct(ad.get('tsr',0))}
+- Hold Rate (Retenção 75%): {_fmt_pct(ad.get('hold_rate',0))}
+- CTR Todos (Engajamento): {_fmt_pct(ad.get('ctr_all',0))}
+- CTR Link (Clique de Saída): {_fmt_pct(ad.get('ctr_link',0))}
 - Compras: {int(ad.get('purchases',0))}
 - CPA: {_fmt_brl(ad.get('cpa',0))}
 - ROAS: {_fmt_roas(ad.get('roas',0))}
@@ -336,13 +354,20 @@ def _show_ad_insights(projeto, ad):
 Analise APENAS este criativo e entregue a resposta em Markdown limpo (SEM tabelas), dividida estritamente nas seguintes seções:
 
 🧠 **Análise por Etapa**
-(Descreva o desempenho do Gancho [3s], Conteúdo e Conversão com base nas métricas)
+Se o Tipo for 'Vídeo':
+- Gancho (0-3s): Compare o TSR do criativo com o TSR Médio da conta.
+- Conteúdo (Desenvolvimento): Compare o Hold Rate (Retenção 75%) do criativo com o Hold Rate Médio da conta.
+- Conversão (CTA): Analise o CTR (Todos/Link) para avaliar se o vídeo induz bem ao clique em comparação ao CTR Médio.
+Se o Tipo for 'Imagem' ou Catálogo, IGNORE Gancho e Hold Rate, e avalie apenas a atratividade visual baseada no CTR.
+
+🛒 **Conversão Final**
+Analise o volume de Vendas, o CPA e o ROAS em relação às médias da conta para determinar a lucratividade real pós-clique.
 
 ⚠️ **Gargalo Principal**
-(Identifique o ponto fraco dominante do criativo)
+Identifique o ponto fraco dominante do criativo baseado nos dados acima.
 
 🎯 **Ação Recomendada**
-(Correção tática imediata)
+O que fazer taticamente (testar ganchos, mudar CTA, pausar, manter, escalar).
 
 📊 **Classificação**
 (Apenas uma das opções: Winners, Testar Variações, ou Pausar)
@@ -409,4 +434,4 @@ def render_criativos():
     _render_diagnostico(agg, mes)
     _render_top_performers(ads)
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-    _render_ad_cards(ads)
+    _render_ad_cards(ads, agg)
