@@ -34,9 +34,9 @@ def _xval(actions, types=("purchase","omni_purchase")):
     return 0
 
 def _fmt_brl(v):
-    if v is None: return "R$ 0,00"
-    if v >= 1000: return f"R$ {v/1000:.1f}k".replace(".",",")
-    return f"R$ {v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
+    if v is None: return "R\\$ 0,00"
+    if v >= 1000: return f"R\\$ {v/1000:.1f}k".replace(".",",")
+    return f"R\\$ {v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
 def _fmt_pct(v): return f"{v:.2f}%".replace(".",",") if v else "0,00%"
 def _fmt_roas(v): return f"{v:.2f}x".replace(".",",") if v else "0,00x"
@@ -89,9 +89,9 @@ def _fetch_meta_ads(account_id, since, until):
             v3s=int(_xval(acts,("video_view",)))
             tsr=(v3s/imp*100) if imp>0 else 0
             
-            # Tenta pegar das actions ou do field direto
-            v75=int(_xval(acts,("video_p75_watched_actions",))) or int(_xval(r.get("video_p75_watched_actions",[]), ("video_p75_watched_actions",)))
-            hold_rate=(v75/imp*100) if imp>0 else 0
+            # Hold Rate (Custom) = ThruPlays / Reproduções de vídeo de 3s
+            thruplays=int(_xval(acts,("thruplay",)))
+            hold_rate=(thruplays/v3s*100) if v3s>0 else 0
 
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
             s_cpm+=cpm; s_ctr+=ctr_all; s_lctr+=ctr_link; s_roas+=roas
