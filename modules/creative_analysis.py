@@ -71,7 +71,7 @@ def _fetch_meta_ads(account_id, since, until):
         rows = account.get_insights(
             fields=["ad_id","ad_name","spend","impressions","cpm","ctr",
                     "inline_link_click_ctr","actions","cost_per_action_type",
-                    "purchase_roas","video_play_actions"],
+                    "purchase_roas"],
             params={"level":"ad","time_range":{"since":since,"until":until},
                     "sort":["spend_descending"],"limit":20,
                     "filtering":[{"field":"spend","operator":"GREATER_THAN","value":"0"}]},
@@ -82,11 +82,11 @@ def _fetch_meta_ads(account_id, since, until):
             spend=float(r.get("spend",0)); imp=int(r.get("impressions",0))
             cpm=float(r.get("cpm",0)); ctr_all=float(r.get("ctr",0))
             ctr_link=float(r.get("inline_link_click_ctr",0))
-            purchases=int(_xval(r.get("actions")))
+            acts = r.get("actions", [])
+            purchases=int(_xval(acts))
             cpa=_xval(r.get("cost_per_action_type"))
             roas=_xval(r.get("purchase_roas"))
-            vpa=r.get("video_play_actions")
-            v3s=int(_xval(vpa,("video_view",))) if vpa else 0
+            v3s=int(_xval(acts,("video_view",)))
             tsr=(v3s/imp*100) if imp>0 else 0
 
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
