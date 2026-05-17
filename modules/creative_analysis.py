@@ -1,28 +1,363 @@
 """
 modules/creative_analysis.py
 Módulo 'Criativos' do dashboard Perfor.IA.
-Exibe os anúncios ativos no Meta Ads (placeholder via mock/sheets).
+Exibe os anúncios ativos no Meta Ads com dados reais via API.
 
 Multi-tenancy: Usa get_active_project() do core.context para obter
 o meta_account_id do projeto selecionado na sidebar.
 """
 
+import calendar
+from datetime import date
+from typing import Optional
+
 import streamlit as st
 
-from core.context import get_active_project, get_all_projects, render_cargo_badge
+from core.context import (
+    get_active_project,
+    get_all_projects,
+    get_project_display_name,
+    render_cargo_badge,
+    get_agent_prompt,
+)
+from core.sheets import MESES_ABREV
 
+
+# ── Constantes ────────────────────────────────────────────────────────────────
+
+_GUIDE_FILE = "MATRIZ_CRIATIVA_IA_guia-inteligencia.md"
+
+
+# ── Helpers — Período do mês ─────────────────────────────────────────────────
+
+def _get_month_range(mes_abrev: str) -> tuple[str, str]:
+    """
+    Retorna (since, until) no formato 'YYYY-MM-DD' para o mês selecionado.
+    Usa o ano atual; se o mês selecionado for posterior ao mês corrente,
+    assume que se refere ao ano anterior.
+    """
+    try:
+        mes_num = MESES_ABREV.index(mes_abrev) + 1
+    except ValueError:
+        mes_num = date.today().month
+
+    ano = date.today().year
+    if mes_num > date.today().month:
+        ano -= 1
+
+    last_day = calendar.monthrange(ano, mes_num)[1]
+    since = f"{ano}-{mes_num:02d}-01"
+    until = f"{ano}-{mes_num:02d}-{last_day:02d}"
+    return since, until
+
+
+# ── Integração com a API do Meta Ads ─────────────────────────────────────────
+
+def _init_meta_api() -> bool:
+    """
+    Inicializa o SDK do facebook_business com as credenciais do secrets.toml.
+    Retorna True se a inicialização foi bem-sucedida, False caso contrário.
+    """
+    try:
+        from facebook_business.api import FacebookAdsApi
+
+        meta_secrets = st.secrets.get("meta")
+        if not meta_secrets:
+            return False
+
+        access_token = meta_secrets.get("access_token", "")
+        app_id = meta_secrets.get("app_id", "")
+        app_secret = meta_secrets.get("app_secret", "")
+
+        if not access_token:
+            return False
+
+        FacebookAdsApi.init(app_id, app_secret, access_token)
+        return True
+    except Exception as e:
+        print(f"[Meta API] Erro ao inicializar SDK: {e}")
+        return False
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _fetch_meta_ads(account_id: str, since: str, until: str) -> dict:
+    """
+    Busca anúncios no Meta Ads com spend > 0 no período informado.
+
+    Retorna:
+    {
+        "ads": [
+            {
+                "nome": str,
+                "status": str,
+                "spend": float,
+                "preview_url": str | None,
+                "creative_type": "Imagem" | "Vídeo" | "Desconhecido",
+            },
+            ...
+        ],
+        "erro": str | None,
+    }
+    """
+    result = {"ads": [], "erro": None}
+
+    try:
+        from facebook_business.adobjects.adaccount import AdAccount
+        from facebook_business.adobjects.ad import Ad
+
+        # Garante formato act_XXXXXXXX
+        if not account_id.startswith("act_"):
+            account_id = f"act_{account_id}"
+
+        account = AdAccount(account_id)
+
+        # Busca os anúncios com insights (spend) dentro do período
+        ads = account.get_ads(
+            fields=[
+                Ad.Field.name,
+                Ad.Field.status,
+                Ad.Field.creative,
+            ],
+            params={
+                "effective_status": [
+                    "ACTIVE",
+                    "PAUSED",
+                    "CAMPAIGN_PAUSED",
+                    "ADSET_PAUSED",
+                ],
+                "limit": 100,
+            },
+        )
+
+        for ad in ads:
+            ad_id = ad.get("id")
+            ad_name = ad.get("name", "Sem nome")
+            ad_status = ad.get("status", "UNKNOWN")
+
+            # Busca os insights (spend) do período para esse anúncio
+            try:
+                insights = ad.get_insights(
+                    fields=["spend"],
+                    params={
+                        "time_range": {"since": since, "until": until},
+                    },
+                )
+                spend = float(insights[0]["spend"]) if insights else 0.0
+            except Exception:
+                spend = 0.0
+
+            # Filtra apenas anúncios com gasto > 0
+            if spend <= 0:
+                continue
+
+            # Obtém a URL do criativo (imagem ou vídeo thumbnail)
+            preview_url = None
+            creative_type = "Desconhecido"
+            try:
+                creative_data = ad.get("creative", {})
+                creative_id = creative_data.get("id") if isinstance(creative_data, dict) else None
+
+                if creative_id:
+                    from facebook_business.adobjects.adcreative import AdCreative
+
+                    creative = AdCreative(creative_id).api_get(
+                        fields=[
+                            "image_url",
+                            "thumbnail_url",
+                            "video_id",
+                            "object_type",
+                        ]
+                    )
+                    image_url = creative.get("image_url")
+                    thumbnail_url = creative.get("thumbnail_url")
+                    video_id = creative.get("video_id")
+                    object_type = creative.get("object_type", "")
+
+                    if video_id:
+                        creative_type = "Vídeo"
+                        preview_url = thumbnail_url or image_url
+                    elif image_url:
+                        creative_type = "Imagem"
+                        preview_url = image_url
+                    else:
+                        preview_url = thumbnail_url
+            except Exception:
+                pass
+
+            result["ads"].append({
+                "nome": ad_name,
+                "status": ad_status,
+                "spend": spend,
+                "preview_url": preview_url,
+                "creative_type": creative_type,
+            })
+
+        # Ordena por gasto decrescente
+        result["ads"].sort(key=lambda x: x["spend"], reverse=True)
+
+    except Exception as e:
+        result["erro"] = str(e)
+
+    return result
+
+
+# ── Formatação ────────────────────────────────────────────────────────────────
+
+def _fmt_spend(value: float) -> str:
+    """Formata o valor de gasto em BRL."""
+    if value >= 1_000:
+        return f"R$ {value / 1_000:.1f}k".replace(".", ",")
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _status_label(raw_status: str) -> tuple[str, str, str]:
+    """
+    Retorna (label, cor, bg) para o status do anúncio.
+    """
+    mapping = {
+        "ACTIVE": ("Ativo", "#00d592", "rgba(0,213,146,0.15)"),
+        "PAUSED": ("Pausado", "#FCD34D", "rgba(251,191,36,0.15)"),
+        "CAMPAIGN_PAUSED": ("Campanha Pausada", "#F59E0B", "rgba(245,158,11,0.12)"),
+        "ADSET_PAUSED": ("Conjunto Pausado", "#F59E0B", "rgba(245,158,11,0.12)"),
+    }
+    return mapping.get(raw_status, ("Inativo", "#6b7280", "rgba(107,114,128,0.15)"))
+
+
+# ── Renderização dos Cards de Criativos ──────────────────────────────────────
+
+def _render_ad_cards(ads: list[dict]) -> None:
+    """Renderiza os cards dos anúncios em um grid de 3 colunas."""
+    cols = st.columns(3, gap="medium")
+
+    for i, ad in enumerate(ads):
+        label, status_color, status_bg = _status_label(ad["status"])
+        spend_str = _fmt_spend(ad["spend"])
+        creative_type = ad.get("creative_type", "Desconhecido")
+        preview_url = ad.get("preview_url")
+
+        # Ícone do tipo de criativo
+        if creative_type == "Vídeo":
+            type_icon = '<i class="bi bi-camera-video-fill"></i>'
+        elif creative_type == "Imagem":
+            type_icon = '<i class="bi bi-image-fill"></i>'
+        else:
+            type_icon = '<i class="bi bi-file-earmark-play"></i>'
+
+        # Bloco de imagem ou placeholder
+        if preview_url:
+            image_block = f'''<img src="{preview_url}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'" />'''
+        else:
+            image_block = '''<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px;">
+                <i class="bi bi-image" style="font-size:2rem; color:#374151;"></i>
+                <span style="font-size:0.7rem; color:#4b5563;">Preview indisponível</span>
+            </div>'''
+
+        with cols[i % 3]:
+            st.markdown(f"""
+            <div class="glass-card" style="padding: 16px; margin-bottom: 24px; display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
+                <div>
+                    <div style="width: 100%; height: 180px; border-radius: 8px; margin-bottom: 16px; overflow: hidden; background-color: #1f2937;">
+                        {image_block}
+                    </div>
+                    <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: #FAFAFA; line-height: 1.3; min-height: 2.5em;">{ad['nome']}</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 0.9rem; color:#9CA3AF;">{type_icon}</span>
+                            <span style="font-size: 0.8rem; color: #9CA3AF;">{creative_type}</span>
+                        </div>
+                        <span style="font-size: 0.9rem; font-weight: 600; color: #FAFAFA; letter-spacing: -0.3px;">
+                            <i class="bi bi-cash" style="margin-right:3px; color:#00d592;"></i>{spend_str}
+                        </span>
+                    </div>
+                </div>
+                <div style="display: inline-block; align-self: flex-start; padding: 4px 12px; border-radius: 20px; background: {status_bg}; border: 1px solid {status_color};">
+                    <span style="color: {status_color}; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">{label}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+# ── Componente Visual: Diretor de Arte Inteligente ───────────────────────────
+
+def _render_ai_director(projeto: dict, ads: list[dict]) -> None:
+    """
+    Renderiza o expander do Diretor de Arte Inteligente (Matriz Criativa).
+    Carrega o guia de inteligência do arquivo .md e estrutura a interface
+    para a futura chamada de IA.
+    """
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+
+    with st.expander("🎬 Diretor de Arte Inteligente (Matriz Criativa)", expanded=False):
+        prompt_guide = get_agent_prompt(_GUIDE_FILE)
+
+        if prompt_guide is None:
+            st.markdown(f"""
+            <div style="padding:20px; text-align:center;">
+                <div style="font-size:1.8rem; margin-bottom:12px; color:#F59E0B;">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <h4 style="color:#FAFAFA; margin:0 0 8px 0; font-size:0.95rem;">Guia de Inteligência Pendente</h4>
+                <p style="color:#6b7280; font-size:0.82rem; margin:0 0 12px 0;">
+                    O arquivo <code style="color:#FCD34D;">{_GUIDE_FILE}</code> ainda não foi adicionado
+                    à pasta <code style="color:#FCD34D;">intelligence_guides/</code>.
+                </p>
+                <p style="color:#4b5563; font-size:0.72rem; margin:0;">
+                    Adicione o manual para ativar o Copiloto de Análise Criativa.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Interface preparada para a chamada de IA
+            nome_projeto = get_project_display_name(projeto)
+            total_ads = len(ads)
+            total_spend = sum(ad.get("spend", 0) for ad in ads)
+            ativos = sum(1 for ad in ads if ad["status"] == "ACTIVE")
+
+            st.markdown(f"""
+            <div style="padding:16px 20px; background:rgba(0,213,146,0.04); border:1px solid rgba(0,213,146,0.15); border-radius:10px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <i class="bi bi-cpu" style="font-size:1.2rem; color:#00d592;"></i>
+                    <span style="color:#FAFAFA; font-weight:600; font-size:0.9rem;">Copiloto Criativo — {nome_projeto}</span>
+                </div>
+                <p style="color:#9CA3AF; font-size:0.8rem; margin:0; line-height:1.6;">
+                    <strong style="color:#FAFAFA;">{total_ads}</strong> criativos analisados ·
+                    <strong style="color:#FAFAFA;">{ativos}</strong> ativos ·
+                    Investimento total: <strong style="color:#00d592;">{_fmt_spend(total_spend)}</strong>
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="padding:16px 20px; background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.15); border-radius:10px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <i class="bi bi-lightbulb-fill" style="color:#3B82F6;"></i>
+                    <span style="color:#FAFAFA; font-weight:600; font-size:0.85rem;">Análise via IA</span>
+                </div>
+                <p style="color:#6b7280; font-size:0.78rem; margin:0; line-height:1.6;">
+                    O guia de inteligência foi carregado com sucesso. Configure a chave de API da OpenAI/Gemini
+                    nos Secrets para ativar a geração automática da Matriz Criativa.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Futuro: botão para disparar análise via LLM
+            # st.button("⚡ Gerar Matriz Criativa", key="btn_gen_matrix")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FUNÇÃO PÚBLICA PRINCIPAL
+# ══════════════════════════════════════════════════════════════════════════════
 
 def render_criativos() -> None:
     render_cargo_badge(
         "✦ Criativos Meta Ads",
-        "Acompanhamento de anúncios ativos e performance.",
+        "Anúncios ativos e performance de criativos em tempo real.",
     )
 
     # ── Verifica projeto ativo ────────────────────────────────────────────────
     projeto = get_active_project()
 
     if projeto is None:
-        # CEO com "Todos os Projetos" selecionado — pede para escolher um
         st.markdown(
             """<div class="glass-card" style="text-align:center; padding:40px 32px;">
                 <div style="font-size:2rem; margin-bottom:14px; color:#3B82F6;"><i class="bi bi-bullseye"></i></div>
@@ -41,11 +376,12 @@ def render_criativos() -> None:
     meta_account_id = projeto.get("meta_account_id")
 
     if not meta_account_id:
+        nome_proj = projeto.get("nome_cliente") or projeto.get("nome", "Projeto")
         html_erro = f"""
         <div class="glass-card" style="border-color:rgba(251,191,36,0.4); background:linear-gradient(135deg, rgba(251,191,36,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
         <div style="font-size:2rem; margin-bottom:14px; color:#FCD34D;"><i class="bi bi-gear-fill"></i></div>
         <h3 style="color:#FCD34D; margin:0 0 8px 0; font-size:1rem;">Conta Meta Não Configurada</h3>
-        <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os anúncios para <strong style="color:#FAFAFA;">{projeto.get('nome_cliente') or projeto.get('nome', 'Projeto')}</strong>.</p>
+        <p style="color:#9CA3AF; font-size:0.85rem; max-width:480px; margin:0 auto 16px auto; line-height:1.7;">Não foi possível carregar os anúncios para <strong style="color:#FAFAFA;">{nome_proj}</strong>.</p>
         <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:10px 16px; display:inline-block; max-width:600px;">
         <p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace; letter-spacing:0.3px;">meta_account_id não definido no Supabase.</p>
         </div>
@@ -55,87 +391,109 @@ def render_criativos() -> None:
         st.markdown(html_erro, unsafe_allow_html=True)
         return
 
-    st.markdown(f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:20px; text-align:right;'>Meta Account ID: <strong>{meta_account_id}</strong></p>", unsafe_allow_html=True)
+    # ── Seletor de Mês (reutiliza a mesma chave do dashboard) ────────────────
+    mes_sel = st.session_state.get("sel_mes_dashboard")
+    if not mes_sel:
+        hoje = date.today()
+        idx = hoje.month - 1
+        if hoje.day <= 5 and hoje.month > 1:
+            idx = hoje.month - 2
+        mes_sel = MESES_ABREV[idx]
 
-    # Tabs para estruturar a página
-    tab1, tab2 = st.tabs(["Anúncios Ativos (Placeholder)", "Análise de Formatos"])
+    since, until = _get_month_range(mes_sel)
 
-    with tab1:
-        st.markdown(
-            "<p style='color:#9CA3AF; font-size:0.85rem; margin-top: 8px;'><em>Os dados abaixo simulam uma listagem de anúncios submetidos via Google Sheets. Futuramente, esta visão será atualizada em tempo real pela API do Meta Ads.</em></p>",
-            unsafe_allow_html=True
-        )
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='color:#6b7280; font-size:0.85rem; margin-bottom:20px; text-align:right;'>"
+        f"Meta Account: <strong>{meta_account_id}</strong> · "
+        f"Período: <strong>{mes_sel}</strong></p>",
+        unsafe_allow_html=True,
+    )
 
-        # Mock de dados simulando Google Sheets listando criativos e status
-        mock_ads = [
-            {
-                "nome": "Vídeo VSL 01 - Oferta Principal",
-                "tipo": "Vídeo",
-                "preview": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                "data_ativacao": "25/04/2026",
-                "status": "Ativo"
-            },
-            {
-                "nome": "Imagem Carrossel - Benefícios",
-                "tipo": "Imagem",
-                "preview": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                "data_ativacao": "28/04/2026",
-                "status": "Pendente"
-            },
-            {
-                "nome": "UGC - Depoimento Cliente Real",
-                "tipo": "Vídeo",
-                "preview": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                "data_ativacao": "30/04/2026",
-                "status": "Ativo"
-            },
-            {
-                "nome": "Story - Chamada Imediata",
-                "tipo": "Imagem",
-                "preview": "https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-                "data_ativacao": "01/05/2026",
-                "status": "Pendente"
-            }
-        ]
+    # ── Inicializa a API do Meta ─────────────────────────────────────────────
+    meta_ok = _init_meta_api()
 
-        cols = st.columns(3, gap="medium")
-        for i, ad in enumerate(mock_ads):
-            with cols[i % 3]:
-                if ad["status"] == "Ativo":
-                    status_color = "#00d592"
-                    status_bg = "rgba(0,213,146,0.15)"
-                else:
-                    status_color = "#FCD34D"
-                    status_bg = "rgba(251,191,36,0.15)"
-                
-                st.markdown(f"""
-                <div class="glass-card" style="padding: 16px; margin-bottom: 24px; display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
-                    <div>
-                        <div style="width: 100%; height: 180px; border-radius: 8px; margin-bottom: 16px; overflow: hidden; background-color: #1f2937;">
-                            <img src="{ad['preview']}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'" />
-                        </div>
-                        <h4 style="margin: 0 0 12px 0; font-size: 1rem; color: #FAFAFA; line-height: 1.3;">{ad['nome']}</h4>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 0.9rem; color:#9CA3AF;">{'<i class="bi bi-camera-video-fill"></i>' if ad['tipo'] == 'Vídeo' else '<i class="bi bi-image-fill"></i>'}</span>
-                                <span style="font-size: 0.8rem; color: #9CA3AF;">{ad['tipo']}</span>
-                            </div>
-                            <span style="font-size: 0.8rem; color: #9CA3AF;"><i class="bi bi-calendar3" style="margin-right:3px;"></i>{ad['data_ativacao']}</span>
-                        </div>
-                    </div>
-                    <div style="display: inline-block; align-self: flex-start; padding: 4px 12px; border-radius: 20px; background: {status_bg}; border: 1px solid {status_color};">
-                        <span style="color: {status_color}; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;">{ad['status']}</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-    with tab2:
-        st.markdown(
-            """<div class="glass-card" style="text-align:center; padding:48px 32px; margin-top: 16px;">
-                <div style="font-size:2.5rem; margin-bottom:16px; color:#6b7280;"><i class="bi bi-tools"></i></div>
-                <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
-                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Em breve: Comparativo de CTR, Hook Rate e performance por formato criativo com dados reais da API do Meta Ads.</p>
-            </div>""",
-            unsafe_allow_html=True
-        )
+    if not meta_ok:
+        # Credenciais do Meta não configuradas — mostra aviso amigável
+        st.markdown("""
+        <div class="glass-card" style="border-color:rgba(59,130,246,0.4); background:linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:32px 28px; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:14px; color:#60A5FA;"><i class="bi bi-key-fill"></i></div>
+            <h3 style="color:#60A5FA; margin:0 0 8px 0; font-size:1rem;">Credenciais do Meta Pendentes</h3>
+            <p style="color:#9CA3AF; font-size:0.85rem; max-width:520px; margin:0 auto 16px auto; line-height:1.7;">
+                Para conectar à API do Meta Ads, adicione as credenciais no arquivo de configuração.
+            </p>
+            <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:14px 20px; display:inline-block; max-width:600px; text-align:left;">
+                <p style="color:#60A5FA; font-size:0.72rem; margin:0 0 8px 0; letter-spacing:1px; font-weight:600;">SECRETS.TOML</p>
+                <code style="color:#9CA3AF; font-size:0.78rem; line-height:1.8; white-space:pre; font-family:'Fira Code', monospace;">[meta]
+app_id = "SEU_APP_ID"
+app_secret = "SEU_APP_SECRET"
+access_token = "SEU_ACCESS_TOKEN"</code>
+            </div>
+            <p style="color:#4b5563; font-size:0.72rem; margin:16px 0 0 0;">
+                <i class="bi bi-shield-lock" style="margin-right:3px;"></i>
+                Adicione na seção <code style="color:#60A5FA;">[meta]</code> do <code style="color:#60A5FA;">.streamlit/secrets.toml</code>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Renderiza o expander do Diretor de Arte mesmo sem dados da API
+        _render_ai_director(projeto, [])
+        return
+
+    # ── Busca os anúncios da API ─────────────────────────────────────────────
+    with st.spinner("Conectando ao Meta Ads..."):
+        data = _fetch_meta_ads(meta_account_id, since, until)
+
+    if data.get("erro"):
+        st.markdown(f"""
+        <div class="glass-card" style="border-color:rgba(239,68,68,0.3); background:linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(12,12,12,0.70) 100%); padding:28px; text-align:center;">
+            <div style="font-size:1.8rem; margin-bottom:12px; color:#EF4444;"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <h3 style="color:#EF4444; margin:0 0 8px 0; font-size:1rem;">Erro ao Buscar Anúncios</h3>
+            <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:10px 16px; margin-top:12px; display:inline-block; max-width:600px;">
+                <p style="color:#6b7280; font-size:0.75rem; margin:0; font-family:monospace;">{data['erro']}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    ads = data["ads"]
+
+    if not ads:
+        st.markdown(f"""
+        <div class="glass-card" style="text-align:center; padding:40px 32px;">
+            <div style="font-size:2rem; margin-bottom:14px; color:#6b7280;"><i class="bi bi-megaphone"></i></div>
+            <h3 style="color:#FAFAFA; margin:0 0 8px 0; font-size:1rem;">Nenhum Criativo com Gasto</h3>
+            <p style="color:#6b7280; font-size:0.85rem; margin:0;">
+                Não foram encontrados anúncios com gasto no período de <strong style="color:#FAFAFA;">{mes_sel}</strong>
+                para a conta <strong style="color:#FAFAFA;">{meta_account_id}</strong>.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        _render_ai_director(projeto, [])
+        return
+
+    # ── Resumo rápido ────────────────────────────────────────────────────────
+    total_spend = sum(a["spend"] for a in ads)
+    total_ativos = sum(1 for a in ads if a["status"] == "ACTIVE")
+
+    st.markdown(f"""
+    <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
+            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">CRIATIVOS ENCONTRADOS</p>
+            <p style="color:#FAFAFA; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{len(ads)}</p>
+        </div>
+        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
+            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">ATIVOS NO PERÍODO</p>
+            <p style="color:#00d592; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{total_ativos}</p>
+        </div>
+        <div style="background:rgba(0,213,146,0.06); border:1px solid rgba(0,213,146,0.15); border-radius:10px; padding:12px 20px; flex:1; min-width:180px;">
+            <p style="color:#6b7280; font-size:0.68rem; letter-spacing:1.2px; margin:0 0 4px 0;">GASTO TOTAL ({mes_sel})</p>
+            <p style="color:#FAFAFA; font-size:1.5rem; font-weight:700; margin:0; letter-spacing:-0.5px;">{_fmt_spend(total_spend)}</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Grid de Cards ────────────────────────────────────────────────────────
+    _render_ad_cards(ads)
+
+    # ── Diretor de Arte IA ───────────────────────────────────────────────────
+    _render_ai_director(projeto, ads)

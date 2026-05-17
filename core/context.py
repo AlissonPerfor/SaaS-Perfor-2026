@@ -13,11 +13,16 @@ Hierarquia:
   - Analista: Vê apenas seus projetos vinculados por e-mail.
 """
 
+import os
+from pathlib import Path
 from typing import Optional
 
 import streamlit as st
 
 from core.database import get_projects
+
+# Caminho absoluto para a pasta de guias de inteligência na raiz do projeto
+_GUIDES_DIR = Path(__file__).resolve().parent.parent / "intelligence_guides"
 
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -181,3 +186,27 @@ def render_cargo_badge(title: str, subtitle: str = "Dados em tempo real via Goog
     st.markdown('<hr style="border:none; border-top:1px solid #1f2937; margin-top:8px; margin-bottom:24px;">', unsafe_allow_html=True)
     
     return col_right
+
+
+# ── Leitura de Prompts para Copilotos IA ─────────────────────────────────────
+
+def get_agent_prompt(file_name: str) -> Optional[str]:
+    """
+    Lê o conteúdo em texto de um arquivo .md dentro da pasta
+    intelligence_guides/ na raiz do projeto.
+
+    Parâmetros:
+        file_name: Nome do arquivo (ex: 'MATRIZ_CRIATIVA_IA_guia-inteligencia.md')
+
+    Retorna:
+        Conteúdo do arquivo como string, ou None se o arquivo não for encontrado.
+    """
+    file_path = _GUIDES_DIR / file_name
+    if not file_path.exists() or not file_path.is_file():
+        return None
+    try:
+        return file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"[IA] Erro ao ler guia de inteligência '{file_name}': {e}")
+        return None
+
