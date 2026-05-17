@@ -92,14 +92,21 @@ def _fetch_meta_ads(account_id, since, until):
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
             s_cpm+=cpm; s_ctr+=ctr_all; s_lctr+=ctr_link; s_tsr+=tsr; s_roas+=roas
 
-            preview=None; ctype="Imagem"; status="ACTIVE"
+            preview=None; ctype="Imagem"; status="ACTIVE"; permalink=None
             try:
                 ao=Ad(r.get("ad_id")).api_get(fields=["status","creative"])
                 status=ao.get("status","ACTIVE")
                 c_id=ao.get("creative",{}).get("id")
                 if c_id:
                     from facebook_business.adobjects.adcreative import AdCreative
-                    cr=AdCreative(c_id).api_get(fields=["image_url","thumbnail_url","video_id","object_story_spec"])
+                    cr=AdCreative(c_id).api_get(fields=["image_url","thumbnail_url","video_id","object_story_spec","instagram_permalink_url","effective_object_story_id"])
+                    
+                    ig_link = cr.get("instagram_permalink_url")
+                    eff_id = cr.get("effective_object_story_id")
+                    if ig_link: permalink = ig_link
+                    elif eff_id: permalink = f"https://facebook.com/{eff_id}"
+                    else: permalink = f"https://facebook.com/{r.get('ad_id')}"
+                    
                     oss = cr.get("object_story_spec", {})
                     
                     # Tenta buscar a imagem original (alta resolução) nas specs
@@ -121,7 +128,7 @@ def _fetch_meta_ads(account_id, since, until):
             result["ads"].append({"nome":r.get("ad_name","?"),"status":status,"spend":spend,
                 "preview_url":preview,"creative_type":ctype,"cpm":cpm,"tsr":tsr,
                 "ctr_all":ctr_all,"ctr_link":ctr_link,"purchases":purchases,
-                "cpa":cpa,"roas":roas})
+                "cpa":cpa,"roas":roas,"permalink":permalink})
 
         if n>0:
             result["agg"]={"cpm":s_cpm/n,"tsr":s_tsr/n,"ctr_all":s_ctr/n,"ctr_link":s_lctr/n,
@@ -262,6 +269,11 @@ def _render_ad_cards(ads):
 </div>
 </div>
 </div>""", unsafe_allow_html=True)
+            
+            link = ad.get("permalink")
+            if link:
+                st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
+                st.link_button("🔗 Ver Material Original", url=link, use_container_width=True)
 
 # ── Gemini Helpers ───────────────────────────────────────────────────────────
 
@@ -283,7 +295,7 @@ def _call_gemini(system, user):
     from google import genai
     key=st.secrets.get("gemini",{}).get("api_key","").strip('"')
     client=genai.Client(api_key=key)
-    r=client.models.generate_content(model="gemini-2.5-pro",contents=user,
+    r=client.models.generate_content(model="gemini-2.5-flash",contents=user,
         config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
     return r.text
 
