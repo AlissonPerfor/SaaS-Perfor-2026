@@ -397,13 +397,50 @@ def render_criativos():
     if not meta_id:
         st.markdown(f'<div class="glass-card" style="text-align:center;padding:32px;"><p style="color:#FCD34D;font-size:1.5rem;"><i class="bi bi-gear-fill"></i></p><h3 style="color:#FCD34D;font-size:1rem;">Meta Não Configurado</h3><p style="color:#6b7280;font-size:0.82rem;">meta_account_id ausente no Supabase.</p></div>', unsafe_allow_html=True)
         return
-    mes=st.session_state.get("sel_mes_dashboard")
-    if not mes:
-        h=date.today(); idx=h.month-1
-        if h.day<=5 and h.month>1: idx=h.month-2
-        mes=MESES_ABREV[idx]
-    since,until=_month_range(mes)
-    st.markdown(f"<p style='color:#6b7280;font-size:0.82rem;text-align:right;margin-bottom:16px;'>Conectado · <strong>act_{meta_id}</strong> · {mes}</p>", unsafe_allow_html=True)
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        period_opt = st.selectbox(
+            "Período de Análise",
+            options=["Últimos 7 dias", "Últimos 14 dias", "Últimos 30 dias", "Mês Atual", "Ano Atual", "Personalizado"],
+            index=3
+        )
+        if period_opt == "Personalizado":
+            from datetime import timedelta
+            dates = st.date_input("Intervalo", [date.today() - timedelta(days=7), date.today()])
+
+    from datetime import timedelta
+    hoje = date.today()
+    if period_opt == "Últimos 7 dias":
+        since = (hoje - timedelta(days=7)).strftime("%Y-%m-%d")
+        until = hoje.strftime("%Y-%m-%d")
+        lbl_mes = "Últimos 7 dias"
+    elif period_opt == "Últimos 14 dias":
+        since = (hoje - timedelta(days=14)).strftime("%Y-%m-%d")
+        until = hoje.strftime("%Y-%m-%d")
+        lbl_mes = "Últimos 14 dias"
+    elif period_opt == "Últimos 30 dias":
+        since = (hoje - timedelta(days=30)).strftime("%Y-%m-%d")
+        until = hoje.strftime("%Y-%m-%d")
+        lbl_mes = "Últimos 30 dias"
+    elif period_opt == "Ano Atual":
+        since = f"{hoje.year}-01-01"
+        until = hoje.strftime("%Y-%m-%d")
+        lbl_mes = "Ano Atual"
+    elif period_opt == "Personalizado":
+        if len(dates) == 2:
+            since = dates[0].strftime("%Y-%m-%d")
+            until = dates[1].strftime("%Y-%m-%d")
+            lbl_mes = f"{dates[0].strftime('%d/%m')} - {dates[1].strftime('%d/%m')}"
+        else:
+            since = until = hoje.strftime("%Y-%m-%d")
+            lbl_mes = "Personalizado"
+    else:
+        last_day = calendar.monthrange(hoje.year, hoje.month)[1]
+        since = f"{hoje.year}-{hoje.month:02d}-01"
+        until = f"{hoje.year}-{hoje.month:02d}-{last_day:02d}"
+        lbl_mes = "Mês Atual"
+
+    st.markdown(f"<p style='color:#6b7280;font-size:0.82rem;text-align:right;margin-bottom:16px;'>Conectado · <strong>act_{meta_id}</strong> · {lbl_mes}</p>", unsafe_allow_html=True)
 
     if not _init_meta_api():
         st.markdown("""
