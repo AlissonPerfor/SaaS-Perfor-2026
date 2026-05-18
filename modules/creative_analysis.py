@@ -466,12 +466,12 @@ def render_criativos():
 
     agg=data.get("agg",{})
     if not ads:
-        st.markdown(f'<div class="glass-card" style="text-align:center;padding:40px;"><p style="color:#6b7280;font-size:1.5rem;"><i class="bi bi-megaphone"></i></p><h3 style="color:#FAFAFA;font-size:1rem;">Nenhum criativo com gasto em {mes}</h3></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="glass-card" style="text-align:center;padding:40px;"><p style="color:#6b7280;font-size:1.5rem;"><i class="bi bi-megaphone"></i></p><h3 style="color:#FAFAFA;font-size:1rem;">Nenhum criativo com gasto em {lbl_mes}</h3></div>', unsafe_allow_html=True)
         return
 
     _render_macro_cards(agg)
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-    _render_diagnostico(agg, mes)
+    _render_diagnostico(agg, lbl_mes)
     _render_top_performers(ads)
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     _render_ad_cards(ads, agg)
