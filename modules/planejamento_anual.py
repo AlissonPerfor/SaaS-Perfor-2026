@@ -515,15 +515,32 @@ Formato: Diagnóstico → Tabela dos 9 Drivers (Jan-Dez) → Red Flags → Insig
 Responda em português brasileiro.
 """
 
+    # Tenta modelos em ordem de preferência (fallback automático por cota)
+    modelos = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    ultimo_erro = ""
     try:
-        client   = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
+        client = genai.Client(api_key=api_key)
+        for modelo in modelos:
+            try:
+                response = client.models.generate_content(
+                    model=modelo,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                    ultimo_erro = err_str
+                    continue  # Tenta o próximo modelo
+                # Erro diferente de cota — retorna direto
+                return f"❌ Erro na API Gemini ({modelo}): {err_str}"
+        return (
+            f"❌ Cota esgotada em todos os modelos disponíveis.\n\n"
+            f"Aguarde alguns minutos e tente novamente, ou configure uma chave API com plano pago.\n\n"
+            f"**Detalhe:** {ultimo_erro[:300]}"
         )
-        return response.text
     except Exception as e:
-        return f"❌ Erro na API Gemini: {str(e)}"
+        return f"❌ Erro ao inicializar cliente Gemini: {str(e)}"
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
