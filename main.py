@@ -445,7 +445,7 @@ def _render_sidebar_project():
             </div>
             <div>
                 <p class="project-name">{nome}</p>
-                <p class="project-category">· {categoria}{(' · ' + squad) if squad else ''}</p>
+                <p class="project-category">{categoria}{(' · ' + squad) if squad else ''}</p>
             </div>
         </div>
     </div>
@@ -474,13 +474,16 @@ def _render_sidebar_project():
     # ── GESTÃO ────────────────────────────────────────────────────────────
     st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
 
+    if st.button(
+        "Planejamento Anual",
+        key="nav_planejamento",
+        use_container_width=True,
+    ):
+        set_page("Planejamento")
+        st.rerun()
+
     st.markdown("""
     <div style="padding: 2px 8px;">
-        <div class="sidebar-nav-item disabled">
-            <i class="bi bi-kanban nav-icon"></i>
-            <span class="nav-label">Planejamento</span>
-            <span class="badge-em-breve">Em Breve</span>
-        </div>
         <div class="sidebar-nav-item disabled">
             <i class="bi bi-calendar3 nav-icon"></i>
             <span class="nav-label">Calendário</span>
@@ -529,7 +532,7 @@ with st.sidebar:
     st.markdown("<div style='height:40px;'></div>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#1f2937; font-size:0.6rem; text-align:center; "
-        "letter-spacing:0.5px;'>© 2026 Perfor Agency · v2.0</p>",
+        "letter-spacing:0.5px;'>© 2026 Perfor Agency A.I</p>",
         unsafe_allow_html=True,
     )
 
@@ -586,6 +589,10 @@ elif nivel == "projeto":
             </div>""",
             unsafe_allow_html=True,
         )
+
+    elif pagina_ativa == "Planejamento":
+        from modules.planejamento_anual import render_planejamento_anual
+        render_planejamento_anual()
 
     elif pagina_ativa == "Criativos":
         from modules.creative_analysis import render_criativos
