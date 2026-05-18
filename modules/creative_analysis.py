@@ -71,7 +71,7 @@ def _fetch_meta_ads(account_id, since, until):
         rows = account.get_insights(
             fields=["ad_id","ad_name","spend","impressions","cpm","ctr",
                     "inline_link_click_ctr","actions","cost_per_action_type",
-                    "purchase_roas","video_p75_watched_actions"],
+                    "purchase_roas","video_thruplay_watched_actions"],
             params={"level":"ad","time_range":{"since":since,"until":until},
                     "sort":["spend_descending"],"limit":20,
                     "filtering":[{"field":"spend","operator":"GREATER_THAN","value":"0"}]},
@@ -91,6 +91,8 @@ def _fetch_meta_ads(account_id, since, until):
             
             # Hold Rate (Custom) = ThruPlays / Reproduções de vídeo de 3s
             thruplays=int(_xval(acts,("thruplay",)))
+            if thruplays == 0:
+                thruplays=int(_xval(r.get("video_thruplay_watched_actions",[]), ("video_view", "thruplay", "video_thruplay_watched_actions")))
             hold_rate=(thruplays/v3s*100) if v3s>0 else 0
 
             t_spend+=spend; t_imp+=imp; t_purchases+=purchases; n+=1
@@ -316,7 +318,7 @@ def _call_gemini(system, user):
     client=genai.Client(api_key=key)
     r=client.models.generate_content(model="gemini-2.5-flash",contents=user,
         config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
-    return r.text
+    return r.text.replace("$", "\\$")
 
 @st.dialog("🧠 Axoly Creative Insights", width="large")
 def _show_ad_insights(projeto, ad, agg):
