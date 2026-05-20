@@ -6,6 +6,7 @@ Com colorização Verde/Amarelo/Vermelho e análise de IA.
 """
 
 import calendar
+import re
 import textwrap
 from datetime import date
 from typing import Optional
@@ -24,6 +25,12 @@ from core.sheets import get_gps_data, fmt_brl, fmt_roas, MESES_ABREV
 
 
 # ── Helpers de colorização ─────────────────────────────────────────────────────
+
+
+def _clean_html(html_str: str) -> str:
+    cleaned = re.sub(r'^[ 	]+', '', html_str, flags=re.MULTILINE)
+    return cleaned.replace('
+', ' ')
 
 def _status_color(atingimento: Optional[float]) -> dict:
     """
@@ -88,7 +95,7 @@ def render_squad_dashboard(squad_name: Optional[str] = None) -> None:
 
     col_title, col_mes = st.columns([4, 1])
     with col_title:
-        st.markdown(textwrap.dedent(f"""
+        st.markdown(_clean_html(f"""
         <div style="margin-bottom:8px;">
             <h1 style="font-size:1.8rem; font-weight:700; color:#FAFAFA; margin:0 0 4px 0; letter-spacing:-0.5px;">
                 {titulo}
@@ -111,7 +118,7 @@ def render_squad_dashboard(squad_name: Optional[str] = None) -> None:
     st.markdown('<hr style="border:none; border-top:1px solid #1f2937; margin:12px 0 24px 0;">', unsafe_allow_html=True)
 
     if not projetos:
-        st.markdown(textwrap.dedent("""
+        st.markdown(_clean_html("""
         <div class="glass-card" style="text-align:center; padding:48px 32px;">
             <div style="font-size:2.5rem; margin-bottom:16px; color:#6b7280;"><i class="bi bi-inbox"></i></div>
             <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Nenhum cliente encontrado</h3>
@@ -146,7 +153,7 @@ def render_squad_dashboard(squad_name: Optional[str] = None) -> None:
     _render_ai_insights(clientes_data, mes_sel)
 
     # ── Tabela de Performance ──────────────────────────────────────────────────
-    st.markdown(textwrap.dedent("""
+    st.markdown(_clean_html("""
     <p style="color:#4b5563; font-size:0.68rem; letter-spacing:1.5px; margin-bottom:12px;">
         <i class="bi bi-bar-chart-fill" style="margin-right:4px;"></i> PERFORMANCE DOS CLIENTES
     </p>
@@ -167,7 +174,7 @@ def _render_client_performance_card(item: dict, mes_num: int, ano: int, mes_sel:
 
     # Sem configuração
     if item["sem_config"] or dados is None:
-        st.markdown(textwrap.dedent(f"""
+        st.markdown(_clean_html(f"""
         <div class="glass-card" style="padding:16px 20px; border-color:rgba(251,191,36,0.25); margin-bottom:2px;">
             <div style="display:flex; align-items:center; gap:14px;">
                 <div style="width:40px; height:40px; border-radius:10px; background:rgba(251,191,36,0.08);
@@ -214,7 +221,7 @@ def _render_client_performance_card(item: dict, mes_num: int, ano: int, mes_sel:
     worst = min((s for s in statuses if s is not None), default=None)
     card_status = _status_color(worst)
 
-    st.markdown(textwrap.dedent(f"""
+    st.markdown(_clean_html(f"""
     <div class="glass-card" style="padding:20px 24px; border-color:{card_status['border']}; 
          background:linear-gradient(135deg, {card_status['bg']} 0%, rgba(12,12,12,0.70) 100%); margin-bottom:2px;">
 
@@ -270,7 +277,7 @@ def _metric_block(label: str, real: Optional[float], meta: Optional[float],
     proj_fmt = _fmt(proj, tipo)
     color = st_color["color"]
 
-    return textwrap.dedent(f"""
+    return _clean_html(f"""
     <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
          border-radius:10px; padding:14px 16px;">
         <p style="color:#6b7280; font-size:0.62rem; letter-spacing:1.2px; margin:0 0 10px 0; font-weight:600;">{label.upper()}</p>
@@ -320,7 +327,7 @@ def _metric_block_invest(label: str, real: Optional[float], meta: Optional[float
         </div>
         """
 
-    return textwrap.dedent(f"""
+    return _clean_html(f"""
     <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
          border-radius:10px; padding:14px 16px;">
         <p style="color:#6b7280; font-size:0.62rem; letter-spacing:1.2px; margin:0 0 10px 0; font-weight:600;">{label.upper()}</p>
@@ -375,7 +382,7 @@ def _render_ai_insights(clientes_data: list[dict], mes_sel: str) -> None:
     # Gera o texto de insight
     insights_html = _build_ai_text(criticos, atencao, ok, mes_sel)
 
-    st.markdown(textwrap.dedent(f"""
+    st.markdown(_clean_html(f"""
     <div style="background:linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(12,12,12,0.80) 100%);
          border:1px solid rgba(139,92,246,0.25); border-radius:14px; padding:20px 24px; margin-bottom:24px;">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
