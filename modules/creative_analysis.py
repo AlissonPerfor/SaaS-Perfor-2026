@@ -320,7 +320,7 @@ def _call_gemini(system, user):
         config=genai.types.GenerateContentConfig(system_instruction=system,temperature=0.8,max_output_tokens=4096))
     return r.text.replace("$", "\\$")
 
-@st.dialog("🧠 Axoly Creative Insights", width="large")
+@st.dialog("🧠 Perfor A.I - Creative Insights", width="large")
 def _show_ad_insights(projeto, ad, agg):
     st.markdown(f"**Analisando:** `{ad['nome']}`")
     guide=get_agent_prompt(_GUIDE_FILE)
