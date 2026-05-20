@@ -28,9 +28,8 @@ from core.sheets import get_gps_data, fmt_brl, fmt_roas, MESES_ABREV
 
 
 def _clean_html(html_str: str) -> str:
-    cleaned = re.sub(r'^[ 	]+', '', html_str, flags=re.MULTILINE)
-    return cleaned.replace('
-', ' ')
+    cleaned = re.sub(r'^[ \t]+', '', html_str, flags=re.MULTILINE)
+    return cleaned.replace('\n', ' ')
 
 def _status_color(atingimento: Optional[float]) -> dict:
     """
