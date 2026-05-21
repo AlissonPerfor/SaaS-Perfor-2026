@@ -218,60 +218,6 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
     else:
         return None
 
-def analyze_with_gemini(df_canais, df_produtos, start_date, end_date):
-    """Envia os dados sumarizados para o Gemini e retorna a análise focada em Gargalos e Oportunidades."""
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        return "❌ Biblioteca `google-genai` não instalada. Rode: `pip install google-genai`"
-
-    try:
-        api_key = st.secrets["gemini"]["api_key"]
-    except Exception:
-        return "❌ Chave da API do Gemini (gemini.api_key) não encontrada em st.secrets."
-
-    client = genai.Client(api_key=api_key)
-    
-    csv_canais = df_canais.head(10).to_csv(index=False) if df_canais is not None and not df_canais.empty else "Sem dados de canais."
-    csv_produtos = df_produtos.head(10).to_csv(index=False) if df_produtos is not None and not df_produtos.empty else "Sem dados de produtos."
-    
-    prompt = f"""
-    Você é a inteligência artificial estratégica (Copiloto) da Perfor Agency, uma agência focada em performance e Growth.
-    
-    Baseado nos dados do Google Analytics 4 (Período: {start_date} até {end_date}):
-    
-    DADOS DE CANAIS (Top 10):
-    {csv_canais}
-    
-    DADOS DE PRODUTOS (Top 10):
-    {csv_produtos}
-    
-    Sua missão é fornecer um relatório direto, executivo e focado em Growth. 
-    NÃO utilize tabelas no seu retorno. Use formatação Markdown limpa e elegante.
-    
-    Estruture obrigatoriamente a sua resposta nos seguintes tópicos:
-    
-    1. Alertas de Desvios de Performance (Gargalos):
-    Aponte de forma direta vazamentos de tráfego, canais ineficientes, quedas em taxa de conversão ou produtos que estão afundando a rentabilidade.
-    
-    2. Oportunidades Táticas Imediatas:
-    Forneça 3 passos estratégicos imediatos focados em realocação de verba, CRO ou alavancagem dos canais/produtos que demonstraram melhor ROI/Receita Média.
-    """
-    
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.7,
-                max_output_tokens=2048,
-            ),
-        )
-        return response.text
-    except Exception as e:
-        return f"Erro na chamada ao Gemini: {str(e)}"
-
 def render_kpi_cards(kpi_data):
     """Renderiza os 4 cards executivos via HTML/CSS."""
     rev = kpi_data.get('total_revenue', 0)
@@ -473,36 +419,3 @@ def render_ga4() -> None:
             )
         else:
             st.info("Nenhum dado de produtos encontrado para este período.")
-
-    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
-
-    # Copiloto Omnichannel (Integração Gemini)
-    st.markdown('''
-    <style>
-    .copilot-expander [data-testid="stExpander"] {
-        border: 1px solid rgba(0, 213, 146, 0.3) !important;
-        border-radius: 12px !important;
-        background-color: rgba(0, 213, 146, 0.02) !important;
-    }
-    .copilot-expander summary p {
-        color: #00D592 !important;
-        font-weight: 600 !important;
-    }
-    .copilot-expander svg {
-        color: #00D592 !important;
-    }
-    </style>
-    ''', unsafe_allow_html=True)
-    
-    st.markdown('<div class="copilot-expander">', unsafe_allow_html=True)
-    with st.expander("Análise Estratégica da IA (Copiloto Perfor)", expanded=False):
-        st.markdown("<p style='color:#8a99ad; font-size:0.9rem;'>Gere um diagnóstico avançado focado em Gargalos e Oportunidades.</p>", unsafe_allow_html=True)
-        
-        if st.button("Interpretar Dados do Funil via Gemini", key="btn_gemini_ga4", type="primary"):
-            if not df_canais.empty or not df_produtos.empty:
-                with st.spinner("A IA está diagnosticando desvios e calculando oportunidades..."):
-                    analise = analyze_with_gemini(df_canais, df_produtos, start_date, end_date)
-                st.markdown(analise)
-            else:
-                st.warning("Não há dados suficientes para a IA analisar.")
-    st.markdown('</div>', unsafe_allow_html=True)

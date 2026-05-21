@@ -547,7 +547,7 @@ def _render_sidebar_project():
     # ── PRODUTIVIDADE & LABS ──────────────────────────────────────────────
     st.markdown('<p class="sidebar-section-label" style="font-size:0.7rem; color:#6B7280; letter-spacing:0.5px; text-transform:uppercase; margin-top:16px;">PRODUTIVIDADE & LABS</p>', unsafe_allow_html=True)
 
-    if st.button(":material/biotech: CRO & UX Audit", key="nav_cro", use_container_width=True):
+    if st.button(":material/lock: CRO & UX Audit", key="nav_cro", use_container_width=True):
         set_page("CRO & UX Audit")
         st.rerun()
         
@@ -668,8 +668,18 @@ elif nivel == "projeto":
         render_ga4()
         
     elif pagina_ativa == "CRO & UX Audit":
-        render_cargo_badge("✦ CRO & UX Audit", "Labs")
-        st.info("Em breve: Auditoria de LP")
+        st.markdown(
+            """<div style="border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 64px 32px; text-align: center; background-color: rgba(255, 255, 255, 0.02); margin-top: 32px;">
+                <div style="font-size: 2.5rem; margin-bottom: 16px; color: #8a99ad;">
+                    <span class="material-symbols-rounded" style="font-size: 40px;">lock</span>
+                </div>
+                <h2 style="color: #FAFAFA; margin: 0 0 12px 0; font-size: 1.5rem; font-weight: 600;">Módulo em Desenvolvimento</h2>
+                <p style="color: #8a99ad; font-size: 1rem; margin: 0; line-height: 1.5; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    A Auditoria Avançada de CRO & UX com Inteligência Artificial estará disponível na próxima atualização do ecossistema Perfor Agency.
+                </p>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     elif pagina_ativa == "Planejamento Anual":
         from modules.planning_annual import render_planejamento_anual
