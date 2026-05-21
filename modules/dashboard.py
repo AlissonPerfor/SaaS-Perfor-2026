@@ -10,6 +10,7 @@ Multi-tenancy:
 
 import calendar
 import textwrap
+import random
 from datetime import date, datetime
 from typing import Optional
 
@@ -72,18 +73,64 @@ ALAVANCAS = [
 
 # ── Hub de Boas-Vindas Estratégico ───────────────────────────────────────────
 
+MESSAGES_POOL = {
+    "primeira_quinzena": {
+        "manha": [
+            "Café na mão, pixel aquecido e olho no CPA. Bora tracionar essas contas logo cedo!",
+            "Bom dia! O orçamento do mês está fresquinho. Quais ganchos novos vamos testar hoje?",
+            "Mente fria, dados limpos. Que tal auditar as regras automatizadas antes do mercado acordar?"
+        ],
+        "tarde": [
+            "Primeira metade do dia concluída. Como está o comportamento do CTR nas campanhas de escala?",
+            "Foco total! O tráfego do horário de almoço já processou. Hora de calibrar os lances.",
+            "Tarde produtiva! Lembre-se: menos achismo, mais dados. O que o GA4 te diz hoje?"
+        ],
+        "noite": [
+            "Operação encerrada por hoje? Só não esqueça de checar se nenhum orçamento diário ficou aberto por erro.",
+            "Baita dia! Os criativos novos performaram? Dê aquela última olhada nos gráficos antes do report."
+        ],
+        "madrugada": [
+            "Madrugada silenciosa, contas blindadas. Hora ideal para minerar novas referências na biblioteca de anúncios.",
+            "Enquanto a concorrência dorme, a Perfor otimiza. O ROAS alto do dia seguinte nasce aqui."
+        ]
+    },
+    "segunda_quinzena": {
+        "manha": [
+            "Segunda quinzena na tela! O planejamento de {proximo_mes} não vai se desenhar sozinho. Bora!",
+            "Bom dia! Dia de analisar quais criativos saturaram nesta quinzena para pedir reposição ao design.",
+            "Alinhamento estratégico ligado. As reuniões de renovação de budget para {proximo_mes} começam essa semana."
+        ],
+        "tarde": [
+            "Hora do raio-X: Quais ganchos UGC performaram melhor para usarmos de base no briefing de {proximo_mes}?",
+            "Boa tarde! Não deixe o cliente te cobrar: antecipe as ideias promocionais do próximo mês hoje.",
+            "Ajuste fino ativado: Hora de cortar o público que só gastou verba e focar no remarketing decisivo."
+        ],
+        "noite": [
+            "Os briefings para as campanhas de {proximo_mes} já estão no forno? Garanta o fluxo do time criativo.",
+            "Dia finalizado. Amanhã é dia de olhar o teto de CPA acumulado com os Heads."
+        ],
+        "madrugada": [
+            "Arquitetando o futuro de {proximo_mes}. Grandes ganchos de tráfego surgem na calada da noite."
+        ]
+    }
+}
+
 def get_hub_greeting() -> None:
     agora = datetime.now()
     hora = agora.hour
     
     if 5 <= hora < 12:
         saudacao = "Bom dia"
+        periodo = "manha"
     elif 12 <= hora < 18:
         saudacao = "Boa tarde"
+        periodo = "tarde"
     elif 18 <= hora <= 23:
         saudacao = "Boa noite"
+        periodo = "noite"
     else:
         saudacao = "Boa madrugada"
+        periodo = "madrugada"
         
     user_data = st.session_state.get("user_data") or {}
     nome_completo = user_data.get("nome", "Álisson")
@@ -91,23 +138,23 @@ def get_hub_greeting() -> None:
     
     dia_atual = agora.day
     mes_atual = agora.month
+    quinzena = "primeira_quinzena" if dia_atual <= 15 else "segunda_quinzena"
     
     meses_extenso = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     prox_mes_idx = mes_atual % 12
     prox_mes_nome = meses_extenso[prox_mes_idx]
     
-    if dia_atual <= 15:
-        msg_estrategica = "Foco em <strong>Execução e Auditoria de Metas</strong>."
-        icone = "🎯"
-    else:
-        msg_estrategica = f"Hora de alinhar o planejamento de <strong>{prox_mes_nome}</strong>."
-        icone = "🗓️"
+    # Seleção da mensagem dinâmica
+    frase_escolhida = random.choice(MESSAGES_POOL[quinzena][periodo])
+    msg_estrategica = frase_escolhida.format(proximo_mes=prox_mes_nome)
+    
+    icone = "🎯" if dia_atual <= 15 else "🗓️"
 
     st.markdown(f"""
     <div style="margin-bottom: 24px; padding: 24px 28px; border-radius: 12px; background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.06) 100%); border: 1px solid rgba(255,255,255,0.05);">
         <h1 style="font-size: 2.2rem; font-weight: 700; color: #FAFAFA; margin: 0 0 6px 0; letter-spacing: -0.5px;">{saudacao}, {nome_usuario}! 👋</h1>
         <p style="color: #D1D5DB; font-size: 1.05rem; margin: 0; letter-spacing: 0.3px;">
-            {icone} <span style="color:#9CA3AF;">Diretriz Estratégica:</span> {msg_estrategica}
+            {icone} {msg_estrategica}
         </p>
     </div>
     """, unsafe_allow_html=True)
