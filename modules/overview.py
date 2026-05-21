@@ -107,7 +107,7 @@ def render_workspace_analista() -> None:
     <style>
     .workspace-card {
         background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(222, 255, 154, 0.15);
+        border: 1px solid rgba(0, 213, 146, 0.2);
         border-radius: 16px;
         padding: 24px;
         margin-bottom: 20px;
