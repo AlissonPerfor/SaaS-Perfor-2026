@@ -16,7 +16,7 @@ MESSAGES_POOL = {
     "primeira_quinzena": {
         "manha": [
             "Café na mão, pixel aquecido e olho no CPA. Bora tracionar essas contas logo cedo!",
-            "Bom dia! O orçamento do mês está fresquinho. Quais ganchos novos vamos testar hoje?",
+            "O orçamento do mês está fresquinho. Quais ganchos novos vamos testar hoje?",
             "Mente fria, dados limpos. Que tal auditar as regras automatizadas antes do mercado acordar?"
         ],
         "tarde": [
@@ -36,12 +36,12 @@ MESSAGES_POOL = {
     "segunda_quinzena": {
         "manha": [
             "Segunda quinzena na tela! O planejamento de {proximo_mes} não vai se desenhar sozinho. Bora!",
-            "Bom dia! Dia de analisar quais criativos saturaram nesta quinzena para pedir reposição ao design.",
+            "Dia de analisar quais criativos saturaram nesta quinzena para pedir reposição ao design.",
             "Alinhamento estratégico ligado. As reuniões de renovação de budget para {proximo_mes} começam essa semana."
         ],
         "tarde": [
             "Hora do raio-X: Quais ganchos UGC performaram melhor para usarmos de base no briefing de {proximo_mes}?",
-            "Boa tarde! Não deixe o cliente te cobrar: antecipe as ideias promocionais do próximo mês hoje.",
+            "Não deixe o cliente te cobrar: antecipe as ideias promocionais do próximo mês hoje.",
             "Ajuste fino ativado: Hora de cortar o público que só gastou verba e focar no remarketing decisivo."
         ],
         "noite": [
@@ -89,13 +89,13 @@ def get_hub_greeting() -> None:
     frase_escolhida = random.choice(MESSAGES_POOL[quinzena][periodo])
     msg_estrategica = frase_escolhida.format(proximo_mes=prox_mes_nome)
     
-    icone = "🎯" if dia_atual <= 15 else "🗓️"
+    icone = ""
 
     st.markdown(f'''
     <div style="margin-bottom: 24px; padding: 24px 28px; border-radius: 12px; background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.06) 100%); border: 1px solid rgba(255,255,255,0.05);">
         <h1 style="font-size: 2.2rem; font-weight: 700; color: #FAFAFA; margin: 0 0 6px 0; letter-spacing: -0.5px;">{saudacao}, {nome_usuario}! 🚀</h1>
         <p style="color: #D1D5DB; font-size: 1.05rem; margin: 0; letter-spacing: 0.3px;">
-            {icone} {msg_estrategica}
+            {msg_estrategica}
         </p>
     </div>
     ''', unsafe_allow_html=True)
