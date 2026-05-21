@@ -66,26 +66,20 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
         st.error("Biblioteca `google-analytics-data` não instalada.")
         return None
 
-    import json
-    creds_dict = {}
     try:
-        with open(".streamlit/google_credentials.json", "r", encoding="utf-8") as f:
-            creds_dict = json.load(f)
-    except FileNotFoundError:
-        try:
-            creds_dict = st.secrets["google"]
-        except KeyError:
-            st.error("Credenciais do Google não encontradas (st.secrets['google'] ou google_credentials.json).")
-            return None
-
-    try:
-        # Garante que as credenciais são um dicionário mutável
-        secrets_dict = dict(creds_dict)
+        # Coleta o dicionário de chaves do escopo correto do st.secrets
+        if "gcp_service_account" in st.secrets:
+            secrets_dict = dict(st.secrets["gcp_service_account"])
+        elif "gspread" in st.secrets:
+            secrets_dict = dict(st.secrets["gspread"])
+        else:
+            secrets_dict = dict(st.secrets)
         
-        # Correção cirúrgica para leitura do arquivo PEM do Google (newlines escapadas no secrets)
-        if "private_key" in secrets_dict and isinstance(secrets_dict["private_key"], str):
+        # Tratamento definitivo de quebra de linha para o arquivo PEM do Google
+        if "private_key" in secrets_dict:
             secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
-
+        
+        # Instancia o cliente da API do GA4
         credentials = service_account.Credentials.from_service_account_info(secrets_dict)
         client = BetaAnalyticsDataClient(credentials=credentials)
     except Exception as e:
