@@ -335,14 +335,12 @@ def render_ga4() -> None:
     components.html("""
     <script>
     const map = {
-        'Choose a date range': 'Escolha uma data para análise',
-        'None': 'Personalizado',
         'Past Week': 'Últimos 7 Dias',
         'Past Month': 'Mês atual',
         'Past 3 Months': 'Últimos 3 Meses',
         'Past 6 Months': 'Últimos 6 meses',
         'Past Year': 'Ano Atual',
-        'Past 2 Years': 'Últimos 2 Anos'
+        'None': 'Personalizado'
     };
     
     const parentDoc = window.parent.document;
@@ -352,6 +350,24 @@ def render_ga4() -> None:
         let node;
         while(node = walker.nextNode()) {
             let text = node.nodeValue.trim();
+            
+            // Ocultar título "Choose a date range"
+            if(text === 'Choose a date range' || text === 'Escolha uma data para análise') {
+                node.nodeValue = '';
+                if (node.parentElement) {
+                    node.parentElement.style.display = 'none';
+                }
+                continue;
+            }
+            
+            // Ocultar opção "Past 2 Years"
+            if(text === 'Past 2 Years' || text === 'Últimos 2 Anos') {
+                if (node.parentElement && node.parentElement.tagName === 'LI') {
+                    node.parentElement.style.display = 'none';
+                }
+                continue;
+            }
+            
             if(map[text]) {
                 node.nodeValue = node.nodeValue.replace(text, map[text]);
             }
