@@ -175,36 +175,43 @@ def render_workspace_analista() -> None:
     
     st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
-# ── Função pública principal ──────────────────────────────────────────────────
-
-def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via Google Sheets") -> None:
+def render_visao_geral() -> None:
     """
-    Renderiza a Visão Geral de Performance para a agência ou projeto ativo.
-    - Se projeto ativo: Mostra dados apenas dele.
-    - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
+    Renderiza o Hub de Boas-Vindas (Visão Geral) da Agência.
+    Apenas exibe a saudação estratégica e o workspace do analista.
     """
     get_hub_greeting()
     render_workspace_analista()
-    
-    col_right = render_cargo_badge(title, subtitle)
 
+
+def render_ceo_dashboard() -> None:
+    """
+    Renderiza o painel do CEO com dados agregados de todos os projetos.
+    """
+    col_right = render_cargo_badge("✦ CEO Dashboard", "Visão consolidada de toda a agência.")
     projetos = get_all_projects()
+    
     if not projetos:
         _render_sem_projetos()
         return
-
-    # ── Seletor de Mês ────────────────────────────────────────────────────────
+        
     mes_sel = _render_month_selector(col_right)
+    _render_visao_agregada(projetos, mes_sel)
 
-    # ── Roteamento por contexto ───────────────────────────────────────────────
+
+def render_project_dashboard() -> None:
+    """
+    Renderiza o Dashboard individual de um projeto.
+    """
+    col_right = render_cargo_badge("✦ Dashboard", "Dados em tempo real via Google Sheets")
     projeto = get_active_project()
-
-    if projeto is None and is_ceo():
-        _render_visao_agregada(projetos, mes_sel)
-    elif projeto is not None:
-        _render_visao_individual(projeto, mes_sel)
-    else:
+    
+    if not projeto:
         _render_sem_projetos()
+        return
+        
+    mes_sel = _render_month_selector(col_right)
+    _render_visao_individual(projeto, mes_sel)
 
 
 # ── Seletor de Mês ───────────────────────────────────────────────────────────
