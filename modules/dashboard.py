@@ -178,11 +178,11 @@ def render_workspace_analista() -> None:
 # ── Função pública principal ──────────────────────────────────────────────────
 
 def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via Google Sheets") -> None:
-    \"\"\"
+    """
     Renderiza a Visão Geral de Performance para a agência ou projeto ativo.
     - Se projeto ativo: Mostra dados apenas dele.
     - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
-    \"\"\"
+    """
     get_hub_greeting()
     render_workspace_analista()
     
