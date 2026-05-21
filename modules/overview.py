@@ -93,7 +93,7 @@ def get_hub_greeting() -> None:
 
     st.markdown(f'''
     <div style="margin-bottom: 24px; padding: 24px 28px; border-radius: 12px; background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.06) 100%); border: 1px solid rgba(255,255,255,0.05);">
-        <h1 style="font-size: 2.2rem; font-weight: 700; color: #FAFAFA; margin: 0 0 6px 0; letter-spacing: -0.5px;">{saudacao}, {nome_usuario}! 👋</h1>
+        <h1 style="font-size: 2.2rem; font-weight: 700; color: #FAFAFA; margin: 0 0 6px 0; letter-spacing: -0.5px;">{saudacao}, {nome_usuario}! 🚀</h1>
         <p style="color: #D1D5DB; font-size: 1.05rem; margin: 0; letter-spacing: 0.3px;">
             {icone} {msg_estrategica}
         </p>
@@ -124,17 +124,17 @@ def render_workspace_analista() -> None:
     with col1:
         st.markdown('''
         <div class="workspace-card">
-            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-kanban"></i> 📅 Quadro de Tarefas</h3>
+            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"> 📋 Quadro de Tarefas</h3>
             <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                 <em>Em breve: Integração com seu fluxo de demandas diárias.</em>
             </p>
         </div>
-        ''', unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)A
         
     with col2:
         st.markdown('''
         <div class="workspace-card">
-            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-calendar-event"></i> 🤝 Próximas Reuniões</h3>
+            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"> 📅 Próximas Reuniões</h3>
             <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                 <em>Em breve: Sincronização com seu calendário Perfor.</em>
             </p>
