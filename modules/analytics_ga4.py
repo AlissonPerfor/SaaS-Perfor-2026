@@ -329,19 +329,27 @@ def render_ga4() -> None:
         margin-bottom: 12px;
     }
     </style>
-    <img src="onerror" style="display:none;" onerror="
+    ''', unsafe_allow_html=True)
+    
+    import streamlit.components.v1 as components
+    components.html("""
+    <script>
     const map = {
-        'Choose a date range': 'Escolha o Período',
-        'None': 'Personalizado (Calendário)',
+        'Choose a date range': 'Escolha um período de análise',
+        'None': 'Personalizado',
         'Past Week': 'Últimos 7 Dias',
-        'Past Month': 'Últimos 30 Dias',
+        'Past Month': 'Últimos 30 dias',
         'Past 3 Months': 'Últimos 3 Meses',
-        'Past 6 Months': 'Últimos 6 Meses',
-        'Past Year': 'Último Ano',
+        'Past 6 Months': 'Últimos 6 meses',
+        'Past Year': 'Ano Atual',
         'Past 2 Years': 'Últimos 2 Anos'
     };
-    const observer = new MutationObserver(() => {
-        document.querySelectorAll('span, li, div').forEach(el => {
+    
+    // Acessa o DOM principal através do iframe do Streamlit
+    const parentDoc = window.parent.document;
+    
+    const translate = () => {
+        parentDoc.querySelectorAll('span, li, div').forEach(el => {
             if(el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
                 let text = el.innerText.trim();
                 if(map[text]) {
@@ -349,10 +357,13 @@ def render_ga4() -> None:
                 }
             }
         });
-    });
-    observer.observe(document.body, {childList: true, subtree: true});
-    "/>
-    ''', unsafe_allow_html=True)
+    };
+    
+    const observer = new MutationObserver(translate);
+    observer.observe(parentDoc.body, {childList: true, subtree: true});
+    translate();
+    </script>
+    """, height=0, width=0)
     
     today = datetime.today()
     default_start = today - timedelta(days=30)
