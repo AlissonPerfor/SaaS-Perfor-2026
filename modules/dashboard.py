@@ -114,47 +114,53 @@ def get_hub_greeting() -> None:
 
 def render_workspace_analista() -> None:
     """Renderiza o workspace do analista/head com tarefas, agenda e atalhos rápidos."""
-    col1, col2, col3 = st.columns(3, gap="medium")
     
-    css_card = \"\"\"
-        padding: 20px; 
-        border-radius: 12px; 
-        background: rgba(255, 255, 255, 0.03); 
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(10px);
+    css_card = """
+    <style>
+    .workspace-card {
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(222, 255, 154, 0.15);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
         height: 100%;
         min-height: 140px;
-    \"\"\"
+        backdrop-filter: blur(10px);
+    }
+    </style>
+    """
+    st.markdown(css_card, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3, gap="medium")
     
     with col1:
-        st.markdown(f\"\"\"
-        <div style="{css_card}">
+        st.markdown("""
+        <div class="workspace-card">
             <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-kanban"></i> 📅 Quadro de Tarefas</h3>
             <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                 <em>Em breve: Integração com seu fluxo de demandas diárias.</em>
             </p>
         </div>
-        \"\"\", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
     with col2:
-        st.markdown(f\"\"\"
-        <div style="{css_card}">
+        st.markdown("""
+        <div class="workspace-card">
             <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-calendar-event"></i> 🤝 Próximas Reuniões</h3>
             <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                 <em>Em breve: Sincronização com seu calendário Perfor.</em>
             </p>
         </div>
-        \"\"\", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
     with col3:
-        st.markdown(f\"\"\"
-        <div style="{css_card}; padding-bottom: 10px;">
+        st.markdown("""
+        <div class="workspace-card" style="padding-bottom: 10px;">
             <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-lightning-charge"></i> Acesso Rápido</h3>
             <div style="margin-top: -8px;"></div>
-        \"\"\", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
         projetos = get_all_projects()
-        # Assume os 3 primeiros como os mais recentes. Idealmente poderíamos ordenar por uma data de acesso/criação, mas pegaremos os primeiros.
         recentes = projetos[:3]
         
         if recentes:
