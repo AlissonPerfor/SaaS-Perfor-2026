@@ -34,9 +34,20 @@ def fetch_ga4_data(property_id: str, report_type: str):
         st.error("Biblioteca `google-analytics-data` não instalada.")
         return None
 
+    import json
+    creds_dict = {}
     try:
-        gcp_sa = st.secrets["gcp_service_account"]
-        credentials = service_account.Credentials.from_service_account_info(gcp_sa)
+        with open(".streamlit/google_credentials.json", "r", encoding="utf-8") as f:
+            creds_dict = json.load(f)
+    except FileNotFoundError:
+        try:
+            creds_dict = st.secrets["google"]
+        except KeyError:
+            st.error("Credenciais do Google não encontradas (st.secrets['google'] ou google_credentials.json).")
+            return None
+
+    try:
+        credentials = service_account.Credentials.from_service_account_info(creds_dict)
         client = BetaAnalyticsDataClient(credentials=credentials)
     except Exception as e:
         st.error(f"Erro ao autenticar no GCP: {str(e)}")
