@@ -66,24 +66,45 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
         st.error("Biblioteca `google-analytics-data` não instalada.")
         return None
 
+    # 1. RASTREADOR INTELIGENTE DE SEGREDOS DO GOOGLE
+    google_secrets = None
+
+    # Procura primeiro nas sub-gavetas conhecidas
+    for target_key in ["gcp_service_account", "gspread", "google_sheets", "google"]:
+        if target_key in st.secrets:
+            sub_dict = st.secrets[target_key]
+            if hasattr(sub_dict, "get") and sub_dict.get("client_email"):
+                google_secrets = dict(sub_dict)
+                break
+
+    # Se não achou, faz uma varredura completa procurando onde está o client_email
+    if not google_secrets:
+        for k in st.secrets.keys():
+            try:
+                potential_dict = st.secrets[k]
+                if hasattr(potential_dict, "get") and potential_dict.get("client_email"):
+                    google_secrets = dict(potential_dict)
+                    break
+            except:
+                continue
+
+    # Caso os segredos estejam salvos direto na raiz (formato plano)
+    if not google_secrets and "client_email" in st.secrets:
+        google_secrets = dict(st.secrets)
+
+    # Se mesmo assim não localizar, exibe o erro amigável na tela
+    if not google_secrets:
+        st.error("Configuração pendente: Credenciais do Google não foram localizadas em st.secrets.")
+        return None
+
+    # 2. CORREÇÃO DA CHAVE PEM E INICIALIZAÇÃO
+    if "private_key" in google_secrets:
+        google_secrets["private_key"] = google_secrets["private_key"].replace("\\n", "\n")
+
     try:
-        # Coleta o dicionário de chaves do escopo correto do st.secrets
-        if "gcp_service_account" in st.secrets:
-            secrets_dict = dict(st.secrets["gcp_service_account"])
-        elif "gspread" in st.secrets:
-            secrets_dict = dict(st.secrets["gspread"])
-        else:
-            secrets_dict = dict(st.secrets)
-        
-        # Tratamento definitivo de quebra de linha para o arquivo PEM do Google
-        if "private_key" in secrets_dict:
-            secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
-        
-        # Instancia o cliente da API do GA4
-        credentials = service_account.Credentials.from_service_account_info(secrets_dict)
-        client = BetaAnalyticsDataClient(credentials=credentials)
+        client = BetaAnalyticsDataClient.from_service_account_info(google_secrets)
     except Exception as e:
-        st.error(f"Erro ao autenticar no GCP: {str(e)}")
+        st.error(f"Erro crítico ao instanciar cliente GA4: {str(e)}")
         return None
 
     property_uri = f"properties/{property_id}"
