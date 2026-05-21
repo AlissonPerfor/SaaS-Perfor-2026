@@ -103,6 +103,17 @@ hide_st_style = """
                 margin-bottom: -2rem !important;
             }
 
+            /* Unificação da Fonte Global */
+            html, body, [class*="css"] {
+                font-family: 'Urbanist', 'Inter', sans-serif !important;
+            }
+
+            /* Estilização Premium da Sidebar (stSidebar) */
+            [data-testid="stSidebar"] {
+                background-color: #111111 !important;
+                border-right: 1px solid rgba(222, 255, 154, 0.15) !important;
+            }
+
             /* ── Estilo dos botões de navegação na sidebar ── */
             [data-testid="stSidebar"] .stButton > button {
                 background: transparent !important;
@@ -111,9 +122,9 @@ hide_st_style = """
                 color: #9CA3AF !important;
                 text-align: left !important;
                 padding: 6px 14px 6px 16px !important;
-                font-size: 0.78rem !important;
-                font-weight: 400 !important;
-                font-family: 'Inter', sans-serif !important;
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                font-family: 'Urbanist', 'Inter', sans-serif !important;
                 border-radius: 0 8px 8px 0 !important;
                 width: 100% !important;
                 display: flex !important;
@@ -141,18 +152,17 @@ hide_st_style = """
                 justify-content: flex-start !important;
             }
 
-            [data-testid="stSidebar"] .stButton > button:hover {
-                background: rgba(255, 255, 255, 0.04) !important;
-                color: #FAFAFA !important;
-                border-left-color: rgba(0, 200, 83, 0.3) !important;
-            }
-
+            /* Hover (Transição Suave) e Efeito Ativo (Pill Effect) */
+            [data-testid="stSidebar"] .stButton > button:hover,
             [data-testid="stSidebar"] .stButton > button:focus,
             [data-testid="stSidebar"] .stButton > button:active {
-                background: rgba(0, 200, 83, 0.08) !important;
-                border-left-color: #00d592 !important;
-                color: #00d592 !important;
+                background: rgba(222, 255, 154, 0.05) !important;
+                color: #deff9a !important;
+                border-left-color: #deff9a !important;
                 font-weight: 600 !important;
+            }
+            [data-testid="stSidebar"] .stButton > button:hover * {
+                color: #deff9a !important;
             }
 
             /* Botão de voltar */
@@ -169,9 +179,53 @@ hide_st_style = """
             }
 
             [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-                color: #00d592 !important;
-                background: rgba(0, 200, 83, 0.04) !important;
-                border-left-color: rgba(0, 200, 83, 0.3) !important;
+                color: #deff9a !important;
+                background: rgba(222, 255, 154, 0.04) !important;
+                border-left-color: rgba(222, 255, 154, 0.3) !important;
+            }
+
+            /* Títulos de Seção da Sidebar */
+            p.sidebar-section-label {
+                font-family: 'Urbanist', 'Inter', sans-serif !important;
+                font-size: 0.7rem !important;
+                color: #6B7280 !important;
+                letter-spacing: 1.5px !important;
+                text-transform: uppercase !important;
+                margin-top: 16px !important;
+                margin-bottom: 8px !important;
+                font-weight: 600 !important;
+            }
+
+            /* Expanders Transparentes na Sidebar */
+            [data-testid="stSidebar"] [data-testid="stExpander"] {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] > div {
+                border: none !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+                background: transparent !important;
+                padding: 0 !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary p {
+                font-family: 'Urbanist', 'Inter', sans-serif !important;
+                color: #9CA3AF !important;
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                letter-spacing: 0.5px !important;
+                text-transform: uppercase !important;
+                transition: all 0.2s ease !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary:hover p {
+                color: #deff9a !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] svg {
+                color: #9CA3AF !important;
+            }
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary:hover svg {
+                color: #deff9a !important;
             }
 
             </style>
