@@ -349,7 +349,7 @@ def _render_sidebar_agency():
     # ── NAVEGAÇÃO ─────────────────────────────────────────────────────────
     st.markdown('<p class="sidebar-section-label">NAVEGAÇÃO</p>', unsafe_allow_html=True)
 
-    if st.button("📊  Visão Geral", key="nav_visao_geral", use_container_width=True):
+    if st.button(":material/home: Visão Geral", key="nav_visao_geral", use_container_width=True):
         set_page("Visão Geral")
         st.rerun()
 
@@ -360,9 +360,9 @@ def _render_sidebar_agency():
         for squad_name in squads:
             projetos_squad = get_projects_by_squad(squad_name)
 
-            with st.expander(f"🎯  {squad_name}", expanded=False):
+            with st.expander(f":material/group: {squad_name}", expanded=False):
                 if st.button(
-                    f"Dashboard do Squad",
+                    f":material/dashboard: Dashboard do Squad",
                     key=f"squad_dash_{squad_name}",
                     use_container_width=True,
                 ):
@@ -394,7 +394,7 @@ def _render_sidebar_agency():
     if cargo == "ceo":
         st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
 
-        if st.button("🛡️  CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
+        if st.button(":material/admin_panel_settings: CEO Dashboard", key="nav_ceo_dash", use_container_width=True):
             set_page("CEO Dashboard")
             st.rerun()
 
@@ -452,48 +452,52 @@ def _render_sidebar_project():
     """, unsafe_allow_html=True)
 
     # ── HOME INICIAL ──────────────────────────────────────────────────────
-    if st.button("🏡 Visão Geral", key="nav_visao_geral_proj", use_container_width=True):
+    if st.button(":material/home: Visão Geral", key="nav_visao_geral_proj", use_container_width=True):
         set_page("Visão Geral")
         st.rerun()
 
     # ── INTELIGÊNCIA & GESTÃO ─────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">INTELIGÊNCIA & GESTÃO</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-section-label" style="font-size:0.7rem; color:#6B7280; letter-spacing:0.5px; text-transform:uppercase; margin-top:16px;">INTELIGÊNCIA & GESTÃO</p>', unsafe_allow_html=True)
 
-    if st.button("📊 Painel do Projeto", key="nav_painel_proj", use_container_width=True):
+    if st.button(":material/grid_view: Painel do Projeto", key="nav_painel_proj", use_container_width=True):
         set_page("Dashboard")
         st.rerun()
         
-    if st.button("🧠 Perfor Brain", key="nav_brain_proj", use_container_width=True):
+    if st.button(":material/psychology: Perfor Brain", key="nav_brain_proj", use_container_width=True):
         set_page("Brain")
+        st.rerun()
+        
+    if st.button(":material/description: Relatórios", key="nav_reports_proj", use_container_width=True):
+        set_page("Reports")
         st.rerun()
 
     # ── PERFORMANCE OMNICHANNEL ───────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">PERFORMANCE OMNICHANNEL</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-section-label" style="font-size:0.7rem; color:#6B7280; letter-spacing:0.5px; text-transform:uppercase; margin-top:16px;">PERFORMANCE OMNICHANNEL</p>', unsafe_allow_html=True)
 
-    with st.expander("🎬 Meta Ads", expanded=False):
-        if st.button("Insights Criativos", key="nav_meta_insights", use_container_width=True):
+    with st.expander("Meta Ads", expanded=False):
+        if st.button(":material/movie_filter: Insights Criativos", key="nav_meta_insights", use_container_width=True):
             set_page("Insights Criativos")
             st.rerun()
-        if st.button("Planejamento & Roteiros", key="nav_meta_planning", use_container_width=True):
+        if st.button(":material/edit_note: Planejamento & Roteiros", key="nav_meta_planning", use_container_width=True):
             set_page("Planejamento & Roteiros")
             st.rerun()
 
-    if st.button("🔍 Google Ads", key="nav_google_ads", use_container_width=True):
+    if st.button(":material/search_insights: Google Ads", key="nav_google_ads", use_container_width=True):
         set_page("Google Ads")
         st.rerun()
         
-    if st.button("📈 Google Analytics 4", key="nav_ga4", use_container_width=True):
+    if st.button(":material/monitoring: Google Analytics 4", key="nav_ga4", use_container_width=True):
         set_page("Google Analytics 4")
         st.rerun()
 
     # ── PRODUTIVIDADE & LABS ──────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">PRODUTIVIDADE & LABS</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-section-label" style="font-size:0.7rem; color:#6B7280; letter-spacing:0.5px; text-transform:uppercase; margin-top:16px;">PRODUTIVIDADE & LABS</p>', unsafe_allow_html=True)
 
-    if st.button("🎯 CRO & UX Audit", key="nav_cro", use_container_width=True):
+    if st.button(":material/biotech: CRO & UX Audit", key="nav_cro", use_container_width=True):
         set_page("CRO & UX Audit")
         st.rerun()
         
-    if st.button("🗓️ Planejamento Anual", key="nav_planejamento", use_container_width=True):
+    if st.button(":material/calendar_month: Planejamento Anual", key="nav_planejamento", use_container_width=True):
         set_page("Planejamento Anual")
         st.rerun()
 
@@ -574,6 +578,10 @@ elif nivel == "projeto":
     elif pagina_ativa == "Dashboard":
         from modules.dashboard import render_project_dashboard
         render_project_dashboard()
+
+    elif pagina_ativa == "Reports":
+        from modules.report_generator import render_report
+        render_report()
 
     elif pagina_ativa == "Brain":
         render_cargo_badge("✦ Brain — Estratégia & Insights", "Análises estratégicas, recomendações de budget e alertas de performance.")
