@@ -327,14 +327,53 @@ def render_ga4() -> None:
     ''', unsafe_allow_html=True)
     
     today = datetime.today()
-    default_start = today - timedelta(days=30)
     
-    date_range = st.date_input(
-        "Filtrar Período de Análise:",
-        value=(default_start, today),
-        max_value=today,
-        format="DD/MM/YYYY"
-    )
+    st.markdown('<p style="font-size: 0.9rem; color: #8a99ad; margin-bottom: 8px;">Filtrar Período de Análise:</p>', unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 1.5])
+    
+    with col1:
+        preset_option = st.selectbox(
+            "Preset",
+            options=["Últimos 7 Dias", "Últimos 14 Dias", "Últimos 30 Dias", "Mês Atual", "Últimos 3 Meses", "Últimos 6 Meses", "Ano Atual", "Personalizado"],
+            index=2, # Padrão: Últimos 30 Dias
+            label_visibility="collapsed"
+        )
+        
+    if preset_option == "Últimos 7 Dias":
+        default_dates = (today - timedelta(days=7), today)
+    elif preset_option == "Últimos 14 Dias":
+        default_dates = (today - timedelta(days=14), today)
+    elif preset_option == "Últimos 30 Dias":
+        default_dates = (today - timedelta(days=30), today)
+    elif preset_option == "Mês Atual":
+        default_dates = (today.replace(day=1), today)
+    elif preset_option == "Últimos 3 Meses":
+        default_dates = (today - timedelta(days=90), today)
+    elif preset_option == "Últimos 6 Meses":
+        default_dates = (today - timedelta(days=180), today)
+    elif preset_option == "Ano Atual":
+        default_dates = (today.replace(month=1, day=1), today)
+    else:
+        default_dates = (today - timedelta(days=30), today)
+
+    with col2:
+        if preset_option == "Personalizado":
+            date_range = st.date_input(
+                "Data",
+                value=default_dates,
+                max_value=today,
+                format="DD/MM/YYYY",
+                label_visibility="collapsed"
+            )
+        else:
+            date_range = st.date_input(
+                "Data",
+                value=default_dates,
+                max_value=today,
+                format="DD/MM/YYYY",
+                label_visibility="collapsed",
+                disabled=True
+            )
     
     # Verifica se o usuário já selecionou ambas as datas
     if len(date_range) != 2:
