@@ -546,7 +546,7 @@ with st.sidebar:
 if nivel == "agencia":
     # ── Páginas do nível agência ──────────────────────────────────────────
     if pagina_ativa == "Visão Geral":
-        from modules.dashboard import render_visao_geral
+        from modules.overview import render_visao_geral
         render_visao_geral()
 
     elif pagina_ativa == "Squad Dashboard":
@@ -562,7 +562,7 @@ if nivel == "agencia":
             st.warning("Acesso restrito ao CEO.")
 
     else:
-        from modules.dashboard import render_visao_geral
+        from modules.overview import render_visao_geral
         render_visao_geral()
 
 elif nivel == "projeto":
@@ -590,11 +590,11 @@ elif nivel == "projeto":
         )
 
     elif pagina_ativa == "Planejamento":
-        from modules.planejamento_anual import render_planejamento_anual
+        from modules.planning_annual import render_planejamento_anual
         render_planejamento_anual()
 
     elif pagina_ativa == "Criativos":
-        from modules.creative_analysis import render_criativos
+        from modules.meta_ads.insights import render_criativos
         render_criativos()
 
     elif pagina_ativa == "Financeiro":
@@ -612,5 +612,5 @@ elif nivel == "projeto":
         )
 
     else:
-        from modules.dashboard import render_visao_geral
+        from modules.overview import render_visao_geral
         render_visao_geral()
