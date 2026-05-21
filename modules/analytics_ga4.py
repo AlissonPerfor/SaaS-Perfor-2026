@@ -98,8 +98,15 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
         return None
 
     # 2. CORREÇÃO DA CHAVE PEM E INICIALIZAÇÃO
-    if "private_key" in google_secrets:
-        google_secrets["private_key"] = google_secrets["private_key"].replace("\\n", "\n")
+    if google_secrets and "private_key" in google_secrets:
+        raw_key = str(google_secrets["private_key"]).strip()
+        
+        # Higienização Tripla Anti-Corrupção de Strings do Cursor
+        if raw_key.startswith('"') and raw_key.endswith('"'):
+            raw_key = raw_key[1:-1]
+        
+        raw_key = raw_key.replace("\\\\n", "\n").replace("\\n", "\n")
+        google_secrets["private_key"] = raw_key
 
     try:
         client = BetaAnalyticsDataClient.from_service_account_info(google_secrets)
