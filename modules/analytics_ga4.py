@@ -347,6 +347,23 @@ def render_ga4() -> None:
     
     const parentDoc = window.parent.document;
     
+    const triggerDateChange = (start, end) => {
+        const pad = (n) => n < 10 ? '0'+n : n;
+        const formatStr = `${pad(start.getDate())}/${pad(start.getMonth()+1)}/${start.getFullYear()} - ${pad(end.getDate())}/${pad(end.getMonth()+1)}/${end.getFullYear()}`;
+        
+        const input = parentDoc.querySelector('div[data-testid="stDateInput"] input');
+        if (input) {
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            nativeInputValueSetter.call(input, formatStr);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+            }, 50);
+        }
+    };
+    
     const translate = () => {
         const walker = parentDoc.createTreeWalker(parentDoc.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
@@ -375,46 +392,59 @@ def render_ga4() -> None:
             }
         }
         
-        // Inject 14 dias
+        // Inject Overrides
         const listbox = parentDoc.querySelector('[role="listbox"]');
-        if (listbox && !listbox.dataset.injected14) {
-            listbox.dataset.injected14 = "true";
+        if (listbox && !listbox.dataset.injectedOverrides) {
+            listbox.dataset.injectedOverrides = "true";
             
-            let targetOption = null;
+            let monthOption = null;
+            let yearOption = null;
+            
             const options = listbox.querySelectorAll('li, [role="option"]');
             options.forEach(opt => {
-                if(opt.innerText.includes('Mês atual')) {
-                    targetOption = opt;
-                }
+                if(opt.innerText.includes('Mês atual')) monthOption = opt;
+                if(opt.innerText.includes('Ano Atual')) yearOption = opt;
             });
             
-            if (targetOption) {
-                const fakeOption = targetOption.cloneNode(true);
-                fakeOption.innerHTML = fakeOption.innerHTML.replace('Mês atual', 'Últimos 14 dias');
-                targetOption.parentNode.insertBefore(fakeOption, targetOption);
+            // 1. Inject "Últimos 14 dias" and override "Mês atual"
+            if (monthOption) {
+                // Últimos 14 dias
+                const fake14 = monthOption.cloneNode(true);
+                fake14.innerHTML = fake14.innerHTML.replace('Mês atual', 'Últimos 14 dias');
+                monthOption.parentNode.insertBefore(fake14, monthOption);
                 
-                fakeOption.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    const today = new Date();
-                    const past14 = new Date();
-                    past14.setDate(today.getDate() - 14);
-                    
-                    const pad = (n) => n < 10 ? '0'+n : n;
-                    const formatStr = `${pad(past14.getDate())}/${pad(past14.getMonth()+1)}/${past14.getFullYear()} - ${pad(today.getDate())}/${pad(today.getMonth()+1)}/${today.getFullYear()}`;
-                    
-                    const input = parentDoc.querySelector('div[data-testid="stDateInput"] input');
-                    if (input) {
-                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                        nativeInputValueSetter.call(input, formatStr);
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        
-                        setTimeout(() => {
-                            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
-                            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
-                        }, 50);
-                    }
+                fake14.addEventListener('click', (e) => {
+                    e.stopPropagation(); e.preventDefault();
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(end.getDate() - 14);
+                    triggerDateChange(start, end);
+                });
+                
+                // Mês atual Override (1st of month to today)
+                const fakeMonth = monthOption.cloneNode(true);
+                monthOption.parentNode.insertBefore(fakeMonth, monthOption);
+                monthOption.style.display = 'none'; // hide native 30-day logic
+                
+                fakeMonth.addEventListener('click', (e) => {
+                    e.stopPropagation(); e.preventDefault();
+                    const end = new Date();
+                    const start = new Date(end.getFullYear(), end.getMonth(), 1);
+                    triggerDateChange(start, end);
+                });
+            }
+            
+            // 2. Override "Ano Atual" (1st of January to today)
+            if (yearOption) {
+                const fakeYear = yearOption.cloneNode(true);
+                yearOption.parentNode.insertBefore(fakeYear, yearOption);
+                yearOption.style.display = 'none'; // hide native 365-day logic
+                
+                fakeYear.addEventListener('click', (e) => {
+                    e.stopPropagation(); e.preventDefault();
+                    const end = new Date();
+                    const start = new Date(end.getFullYear(), 0, 1);
+                    triggerDateChange(start, end);
                 });
             }
         }
