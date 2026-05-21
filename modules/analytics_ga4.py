@@ -328,15 +328,30 @@ def render_ga4() -> None:
         max-width: 320px;
         margin-bottom: 12px;
     }
-    
-    /* Remove native Streamlit date presets in popup */
-    div[data-baseweb="calendar"] div[data-baseweb="select"] {
-        display: none !important;
-    }
-    div[data-baseweb="calendar"] div:has(> span:contains("Choose a date range")) {
-        display: none !important;
-    }
     </style>
+    <img src="onerror" style="display:none;" onerror="
+    const map = {
+        'Choose a date range': 'Escolha o Período',
+        'None': 'Personalizado (Calendário)',
+        'Past Week': 'Últimos 7 Dias',
+        'Past Month': 'Últimos 30 Dias',
+        'Past 3 Months': 'Últimos 3 Meses',
+        'Past 6 Months': 'Últimos 6 Meses',
+        'Past Year': 'Último Ano',
+        'Past 2 Years': 'Últimos 2 Anos'
+    };
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('span, li, div').forEach(el => {
+            if(el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+                let text = el.innerText.trim();
+                if(map[text]) {
+                    el.innerText = map[text];
+                }
+            }
+        });
+    });
+    observer.observe(document.body, {childList: true, subtree: true});
+    "/>
     ''', unsafe_allow_html=True)
     
     today = datetime.today()
