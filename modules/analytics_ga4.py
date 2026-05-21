@@ -65,12 +65,11 @@ def fetch_ga4_data(property_id: str, report_type: str):
     if report_type == "canais":
         request = RunReportRequest(
             property=property_uri,
-            dimensions=[Dimension(name="sessionDefaultChannelGroup")],
+            dimensions=[Dimension(name="sessionCustomChannelGroup")],
             metrics=[
                 Metric(name="sessions"),
-                Metric(name="engagedSessions"),
                 Metric(name="engagementRate"),
-                Metric(name="averageSessionDuration"),
+                Metric(name="purchases"),
                 Metric(name="totalRevenue")
             ],
             date_ranges=[DateRange(start_date="30daysAgo", end_date="today")],
@@ -102,8 +101,16 @@ def fetch_ga4_data(property_id: str, report_type: str):
             return pd.DataFrame()
             
         if report_type == "canais":
-            cols = ["Canal", "Sessões", "Sessões Engajadas", "Taxa de Engajamento", "Tempo Médio", "Receita Total"]
+            cols = ["Canal", "Sessões", "Taxa de Engajamento", "Eventos Principais: Purchase", "Receita Total"]
             df = pd.DataFrame(data, columns=cols)
+            df["Taxa de Eventos Principais por Sessão: Purchase"] = (df["Eventos Principais: Purchase"] / df["Sessões"]) * 100
+            df["Taxa de Eventos Principais por Sessão: Purchase"] = df["Taxa de Eventos Principais por Sessão: Purchase"].fillna(0)
+            
+            # Usando import numpy as np caso pandas divisão por zero retorne inf
+            import numpy as np
+            df["Receita Média de Compra"] = df["Receita Total"] / df["Eventos Principais: Purchase"]
+            df["Receita Média de Compra"] = df["Receita Média de Compra"].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            
             df = df.sort_values(by="Receita Total", ascending=False)
             return df
         elif report_type == "produtos":
@@ -225,13 +232,17 @@ def render_ga4() -> None:
             df_canais_display = df_canais.copy()
             # Formatação
             df_canais_display["Receita Total"] = df_canais_display["Receita Total"].apply(format_currency)
+            df_canais_display["Receita Média de Compra"] = df_canais_display["Receita Média de Compra"].apply(format_currency)
             df_canais_display["Taxa de Engajamento"] = (df_canais_display["Taxa de Engajamento"] * 100).apply(format_percentage)
+            df_canais_display["Taxa de Eventos Principais por Sessão: Purchase"] = df_canais_display["Taxa de Eventos Principais por Sessão: Purchase"].apply(format_percentage)
             df_canais_display["Sessões"] = df_canais_display["Sessões"].astype(int)
-            df_canais_display["Sessões Engajadas"] = df_canais_display["Sessões Engajadas"].astype(int)
-            df_canais_display["Tempo Médio"] = df_canais_display["Tempo Médio"].apply(lambda x: f"{int(x)}s")
+            df_canais_display["Eventos Principais: Purchase"] = df_canais_display["Eventos Principais: Purchase"].astype(int)
+            
+            # Reordenar colunas
+            cols = ['Canal', 'Sessões', 'Taxa de Engajamento', 'Eventos Principais: Purchase', 'Taxa de Eventos Principais por Sessão: Purchase', 'Receita Total', 'Receita Média de Compra']
             
             st.dataframe(
-                df_canais_display,
+                df_canais_display[cols],
                 use_container_width=True,
                 hide_index=True,
             )
