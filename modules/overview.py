@@ -129,7 +129,7 @@ def render_workspace_analista() -> None:
                 <em>Em breve: Integração com seu fluxo de demandas diárias.</em>
             </p>
         </div>
-        ''', unsafe_allow_html=True)A
+        ''', unsafe_allow_html=True)
         
     with col2:
         st.markdown('''
