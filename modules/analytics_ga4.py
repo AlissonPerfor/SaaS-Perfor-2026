@@ -86,7 +86,7 @@ def fetch_ga4_data(property_id: str, report_type: str):
             metrics=[
                 Metric(name="sessions"),
                 Metric(name="engagementRate"),
-                Metric(name="purchases"),
+                Metric(name="ecommercePurchases"),
                 Metric(name="totalRevenue")
             ],
             date_ranges=[DateRange(start_date="30daysAgo", end_date="today")],
