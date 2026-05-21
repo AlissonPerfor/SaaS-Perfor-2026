@@ -451,51 +451,51 @@ def _render_sidebar_project():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── PERFORMANCE ───────────────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">PERFORMANCE</p>', unsafe_allow_html=True)
-
-    modules_perf = [
-        ("Dashboard", "nav_gps"),
-        ("Reports", "nav_report"),
-        ("Brain", "nav_brain"),
-        ("Criativos", "nav_criativos"),
-        ("Financeiro", "nav_financeiro"),
-    ]
-
-    for label, key in modules_perf:
-        if st.button(
-            label,
-            key=key,
-            use_container_width=True,
-        ):
-            set_page(label)
-            st.rerun()
-
-    # ── GESTÃO ────────────────────────────────────────────────────────────
-    st.markdown('<p class="sidebar-section-label">GESTÃO</p>', unsafe_allow_html=True)
-
-    if st.button(
-        "Planejamento Anual",
-        key="nav_planejamento",
-        use_container_width=True,
-    ):
-        set_page("Planejamento")
+    # ── HOME INICIAL ──────────────────────────────────────────────────────
+    if st.button("🏡 Visão Geral", key="nav_visao_geral_proj", use_container_width=True):
+        set_page("Visão Geral")
         st.rerun()
 
-    st.markdown("""
-    <div style="padding: 2px 8px;">
-        <div class="sidebar-nav-item disabled">
-            <i class="bi bi-calendar3 nav-icon"></i>
-            <span class="nav-label">Calendário</span>
-            <span class="badge-em-breve">Em Breve</span>
-        </div>
-        <div class="sidebar-nav-item disabled">
-            <i class="bi bi-journal-text nav-icon"></i>
-            <span class="nav-label">Reuniões</span>
-            <span class="badge-em-breve">Em Breve</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # ── INTELIGÊNCIA & GESTÃO ─────────────────────────────────────────────
+    st.markdown('<p class="sidebar-section-label">INTELIGÊNCIA & GESTÃO</p>', unsafe_allow_html=True)
+
+    if st.button("📊 Painel do Projeto", key="nav_painel_proj", use_container_width=True):
+        set_page("Dashboard")
+        st.rerun()
+        
+    if st.button("🧠 Perfor Brain", key="nav_brain_proj", use_container_width=True):
+        set_page("Brain")
+        st.rerun()
+
+    # ── PERFORMANCE OMNICHANNEL ───────────────────────────────────────────
+    st.markdown('<p class="sidebar-section-label">PERFORMANCE OMNICHANNEL</p>', unsafe_allow_html=True)
+
+    with st.expander("🎬 Meta Ads", expanded=False):
+        if st.button("Insights Criativos", key="nav_meta_insights", use_container_width=True):
+            set_page("Insights Criativos")
+            st.rerun()
+        if st.button("Planejamento & Roteiros", key="nav_meta_planning", use_container_width=True):
+            set_page("Planejamento & Roteiros")
+            st.rerun()
+
+    if st.button("🔍 Google Ads", key="nav_google_ads", use_container_width=True):
+        set_page("Google Ads")
+        st.rerun()
+        
+    if st.button("📈 Google Analytics 4", key="nav_ga4", use_container_width=True):
+        set_page("Google Analytics 4")
+        st.rerun()
+
+    # ── PRODUTIVIDADE & LABS ──────────────────────────────────────────────
+    st.markdown('<p class="sidebar-section-label">PRODUTIVIDADE & LABS</p>', unsafe_allow_html=True)
+
+    if st.button("🎯 CRO & UX Audit", key="nav_cro", use_container_width=True):
+        set_page("CRO & UX Audit")
+        st.rerun()
+        
+    if st.button("🗓️ Planejamento Anual", key="nav_planejamento", use_container_width=True):
+        set_page("Planejamento Anual")
+        st.rerun()
 
     # ── Botão Voltar ──────────────────────────────────────────────────────
     st.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True)
@@ -567,13 +567,13 @@ if nivel == "agencia":
 
 elif nivel == "projeto":
     # ── Páginas do nível projeto ──────────────────────────────────────────
-    if pagina_ativa == "Dashboard":
+    if pagina_ativa == "Visão Geral":
+        from modules.overview import render_visao_geral
+        render_visao_geral()
+
+    elif pagina_ativa == "Dashboard":
         from modules.dashboard import render_project_dashboard
         render_project_dashboard()
-
-    elif pagina_ativa == "Reports":
-        from modules.report_generator import render_report
-        render_report()
 
     elif pagina_ativa == "Brain":
         render_cargo_badge("✦ Brain — Estratégia & Insights", "Análises estratégicas, recomendações de budget e alertas de performance.")
@@ -589,27 +589,29 @@ elif nivel == "projeto":
             unsafe_allow_html=True,
         )
 
-    elif pagina_ativa == "Planejamento":
-        from modules.planning_annual import render_planejamento_anual
-        render_planejamento_anual()
-
-    elif pagina_ativa == "Criativos":
+    elif pagina_ativa == "Insights Criativos":
         from modules.meta_ads.insights import render_criativos
         render_criativos()
+        
+    elif pagina_ativa == "Planejamento & Roteiros":
+        render_cargo_badge("✦ Planejamento & Roteiros", "IA UGC")
+        st.info("Em breve: Planejamento & Roteiros UGC")
+        
+    elif pagina_ativa == "Google Ads":
+        render_cargo_badge("✦ Google Ads", "Performance")
+        st.info("Em breve: Módulo Google Ads")
+        
+    elif pagina_ativa == "Google Analytics 4":
+        render_cargo_badge("✦ Google Analytics 4", "Faturamento e Funil")
+        st.info("Em breve: Módulo Google Analytics 4")
+        
+    elif pagina_ativa == "CRO & UX Audit":
+        render_cargo_badge("✦ CRO & UX Audit", "Labs")
+        st.info("Em breve: Auditoria de LP")
 
-    elif pagina_ativa == "Financeiro":
-        render_cargo_badge("✦ Financeiro", "MRR, churn, LTV e projeções de receita.")
-        projeto = get_active_project()
-        _nome = get_project_display_name(projeto) if projeto else "—"
-        st.markdown(
-            f"""<div class="glass-card" style="text-align:center; padding:48px 32px;">
-                <div style="font-size:2.5rem; margin-bottom:16px; color:#00d592;"><i class="bi bi-wallet2"></i></div>
-                <h3 style="color:#FAFAFA; margin:0 0 8px 0;">Módulo em Construção</h3>
-                <p style="color:#6b7280; font-size:0.88rem; margin:0;">Projeto ativo: <strong style="color:#00d592;">{_nome}</strong><br>
-                Em breve: MRR, churn, LTV e projeções de receita.</p>
-            </div>""",
-            unsafe_allow_html=True,
-        )
+    elif pagina_ativa == "Planejamento Anual":
+        from modules.planning_annual import render_planejamento_anual
+        render_planejamento_anual()
 
     else:
         from modules.overview import render_visao_geral
