@@ -101,12 +101,16 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
     if google_secrets and "private_key" in google_secrets:
         raw_key = str(google_secrets["private_key"]).strip()
         
-        # Higienização Tripla Anti-Corrupção de Strings do Cursor
-        if raw_key.startswith('"') and raw_key.endswith('"'):
-            raw_key = raw_key[1:-1]
+        # Reconstrução Absoluta do PEM (Ignora sujeiras do TOML/Cloud)
+        raw_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
+        raw_key = raw_key.replace("-----END PRIVATE KEY-----", "")
+        raw_key = raw_key.replace("\\n", "")
+        raw_key = raw_key.replace("\n", "")
+        raw_key = raw_key.replace(" ", "")
         
-        raw_key = raw_key.replace("\\\\n", "\n").replace("\\n", "\n")
-        google_secrets["private_key"] = raw_key
+        import textwrap
+        wrapped_key = "\n".join(textwrap.wrap(raw_key, 64))
+        google_secrets["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_key}\n-----END PRIVATE KEY-----\n"
 
     try:
         client = BetaAnalyticsDataClient.from_service_account_info(google_secrets)
