@@ -110,7 +110,9 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
         raw_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
         raw_key = raw_key.replace("-----END PRIVATE KEY-----", "")
         raw_key = raw_key.replace("\\n", "")
+        raw_key = raw_key.replace("\\r", "")
         raw_key = raw_key.replace("\n", "")
+        raw_key = raw_key.replace("\r", "")
         raw_key = raw_key.replace(" ", "")
         
         import textwrap
