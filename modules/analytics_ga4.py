@@ -351,7 +351,6 @@ def render_ga4() -> None:
         while(node = walker.nextNode()) {
             let text = node.nodeValue.trim();
             
-            // Ocultar título "Choose a date range"
             if(text === 'Choose a date range' || text === 'Escolha uma data para análise') {
                 node.nodeValue = '';
                 if (node.parentElement) {
@@ -360,16 +359,61 @@ def render_ga4() -> None:
                 continue;
             }
             
-            // Ocultar opção "Past 2 Years"
             if(text === 'Past 2 Years' || text === 'Últimos 2 Anos') {
-                if (node.parentElement && node.parentElement.tagName === 'LI') {
+                if (node.parentElement && (node.parentElement.tagName === 'LI' || node.parentElement.getAttribute('role') === 'option')) {
                     node.parentElement.style.display = 'none';
+                } else if (node.parentElement && node.parentElement.parentElement) {
+                    node.parentElement.parentElement.style.display = 'none';
                 }
                 continue;
             }
             
             if(map[text]) {
                 node.nodeValue = node.nodeValue.replace(text, map[text]);
+            }
+        }
+        
+        // Inject 14 dias
+        const listbox = parentDoc.querySelector('[role="listbox"]');
+        if (listbox && !listbox.dataset.injected14) {
+            listbox.dataset.injected14 = "true";
+            
+            let targetOption = null;
+            const options = listbox.querySelectorAll('li, [role="option"]');
+            options.forEach(opt => {
+                if(opt.innerText.includes('Mês atual')) {
+                    targetOption = opt;
+                }
+            });
+            
+            if (targetOption) {
+                const fakeOption = targetOption.cloneNode(true);
+                fakeOption.innerHTML = fakeOption.innerHTML.replace('Mês atual', 'Últimos 14 dias');
+                targetOption.parentNode.insertBefore(fakeOption, targetOption);
+                
+                fakeOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    const today = new Date();
+                    const past14 = new Date();
+                    past14.setDate(today.getDate() - 14);
+                    
+                    const pad = (n) => n < 10 ? '0'+n : n;
+                    const formatStr = `${pad(past14.getDate())}/${pad(past14.getMonth()+1)}/${past14.getFullYear()} - ${pad(today.getDate())}/${pad(today.getMonth()+1)}/${today.getFullYear()}`;
+                    
+                    const input = parentDoc.querySelector('div[data-testid="stDateInput"] input');
+                    if (input) {
+                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeInputValueSetter.call(input, formatStr);
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        
+                        setTimeout(() => {
+                            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+                            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+                        }, 50);
+                    }
+                });
             }
         }
     };
