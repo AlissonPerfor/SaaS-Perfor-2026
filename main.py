@@ -664,8 +664,8 @@ elif nivel == "projeto":
         st.info("Em breve: Módulo Google Ads")
         
     elif pagina_ativa == "Google Analytics 4":
-        render_cargo_badge("✦ Google Analytics 4", "Faturamento e Funil")
-        st.info("Em breve: Módulo Google Analytics 4")
+        from modules.analytics_ga4 import render_ga4
+        render_ga4()
         
     elif pagina_ativa == "CRO & UX Audit":
         render_cargo_badge("✦ CRO & UX Audit", "Labs")
