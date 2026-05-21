@@ -366,6 +366,15 @@ def render_ga4() -> None:
     
     const parentDoc = window.parent.document;
     
+    const closePopover = () => {
+        const popovers = parentDoc.querySelectorAll('[data-baseweb="popover"]');
+        popovers.forEach(p => p.style.display = 'none');
+        const input = parentDoc.querySelector('div[data-testid="stDateInput"] input');
+        if(input) {
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+        }
+    };
+    
     const triggerDateChange = (start, end) => {
         const pad = (n) => n < 10 ? '0'+n : n;
         const formatStr = `${pad(start.getDate())}/${pad(start.getMonth()+1)}/${start.getFullYear()} - ${pad(end.getDate())}/${pad(end.getMonth()+1)}/${end.getFullYear()}`;
@@ -378,7 +387,7 @@ def render_ga4() -> None:
             
             setTimeout(() => {
                 input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
-                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+                closePopover();
             }, 50);
         }
     };
@@ -408,7 +417,36 @@ def render_ga4() -> None:
             
             if(map[text]) {
                 node.nodeValue = node.nodeValue.replace(text, map[text]);
+                
+                // Attach close listener to native preset options
+                if (node.parentElement) {
+                    let li = node.parentElement.closest('li') || node.parentElement.closest('[role="option"]');
+                    if (li && !li.dataset.closeListener) {
+                        li.dataset.closeListener = "true";
+                        li.addEventListener('click', () => {
+                            setTimeout(closePopover, 50);
+                        });
+                    }
+                }
             }
+        }
+        
+        // Monitor Calendar Day Clicks to auto-close when full range is selected
+        const calendar = parentDoc.querySelector('[data-baseweb="calendar"]');
+        if (calendar && !calendar.dataset.closeListener) {
+            calendar.dataset.closeListener = "true";
+            calendar.addEventListener('click', (e) => {
+                let btn = e.target.closest('[role="button"]');
+                if (btn) {
+                    setTimeout(() => {
+                        const input = parentDoc.querySelector('div[data-testid="stDateInput"] input');
+                        // if input value has 2 dates (length is usually 21+ like "21/04/2026 - 21/05/2026" or contains dash)
+                        if (input && input.value.length > 20 && (input.value.includes('-') || input.value.includes('–'))) {
+                            closePopover();
+                        }
+                    }, 100);
+                }
+            });
         }
         
         // Inject Overrides
@@ -425,9 +463,7 @@ def render_ga4() -> None:
                 if(opt.innerText.includes('Ano Atual')) yearOption = opt;
             });
             
-            // 1. Inject "Últimos 14 dias" and override "Mês atual"
             if (monthOption) {
-                // Últimos 14 dias
                 const fake14 = monthOption.cloneNode(true);
                 fake14.innerHTML = fake14.innerHTML.replace('Mês atual', 'Últimos 14 dias');
                 monthOption.parentNode.insertBefore(fake14, monthOption);
@@ -440,10 +476,9 @@ def render_ga4() -> None:
                     triggerDateChange(start, end);
                 });
                 
-                // Mês atual Override (1st of month to today)
                 const fakeMonth = monthOption.cloneNode(true);
                 monthOption.parentNode.insertBefore(fakeMonth, monthOption);
-                monthOption.style.display = 'none'; // hide native 30-day logic
+                monthOption.style.display = 'none';
                 
                 fakeMonth.addEventListener('click', (e) => {
                     e.stopPropagation(); e.preventDefault();
@@ -453,11 +488,10 @@ def render_ga4() -> None:
                 });
             }
             
-            // 2. Override "Ano Atual" (1st of January to today)
             if (yearOption) {
                 const fakeYear = yearOption.cloneNode(true);
                 yearOption.parentNode.insertBefore(fakeYear, yearOption);
-                yearOption.style.display = 'none'; // hide native 365-day logic
+                yearOption.style.display = 'none';
                 
                 fakeYear.addEventListener('click', (e) => {
                     e.stopPropagation(); e.preventDefault();
