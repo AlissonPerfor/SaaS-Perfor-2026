@@ -20,6 +20,7 @@ from core.context import (
     get_all_projects,
     is_ceo,
     render_cargo_badge,
+    navigate_to_project,
 )
 from core.sheets import (
     MESES_ABREV,
@@ -111,17 +112,73 @@ def get_hub_greeting() -> None:
     </div>
     """, unsafe_allow_html=True)
 
+def render_workspace_analista() -> None:
+    """Renderiza o workspace do analista/head com tarefas, agenda e atalhos rápidos."""
+    col1, col2, col3 = st.columns(3, gap="medium")
+    
+    css_card = \"\"\"
+        padding: 20px; 
+        border-radius: 12px; 
+        background: rgba(255, 255, 255, 0.03); 
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        height: 100%;
+        min-height: 140px;
+    \"\"\"
+    
+    with col1:
+        st.markdown(f\"\"\"
+        <div style="{css_card}">
+            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-kanban"></i> 📅 Quadro de Tarefas</h3>
+            <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
+                <em>Em breve: Integração com seu fluxo de demandas diárias.</em>
+            </p>
+        </div>
+        \"\"\", unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown(f\"\"\"
+        <div style="{css_card}">
+            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-calendar-event"></i> 🤝 Próximas Reuniões</h3>
+            <p style="color: #9CA3AF; font-size: 0.85rem; margin: 0; line-height: 1.5;">
+                <em>Em breve: Sincronização com seu calendário Perfor.</em>
+            </p>
+        </div>
+        \"\"\", unsafe_allow_html=True)
+        
+    with col3:
+        st.markdown(f\"\"\"
+        <div style="{css_card}; padding-bottom: 10px;">
+            <h3 style="font-size: 1.1rem; color: #FAFAFA; margin: 0 0 12px 0;"><i class="bi bi-lightning-charge"></i> Acesso Rápido</h3>
+            <div style="margin-top: -8px;"></div>
+        \"\"\", unsafe_allow_html=True)
+        
+        projetos = get_all_projects()
+        # Assume os 3 primeiros como os mais recentes. Idealmente poderíamos ordenar por uma data de acesso/criação, mas pegaremos os primeiros.
+        recentes = projetos[:3]
+        
+        if recentes:
+            for p in recentes:
+                nome = p.get("nome_cliente") or p.get("nome", "Projeto")
+                if st.button(f"🚀 {nome}", key=f"btn_ws_{p.get('id', nome)}", use_container_width=True):
+                    navigate_to_project(p)
+        else:
+            st.markdown("<p style='color: #6b7280; font-size: 0.8rem;'>Nenhum projeto vinculado.</p>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
 # ── Função pública principal ──────────────────────────────────────────────────
 
-
 def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via Google Sheets") -> None:
-    """
+    \"\"\"
     Renderiza a Visão Geral de Performance para a agência ou projeto ativo.
     - Se projeto ativo: Mostra dados apenas dele.
     - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
-    """
+    \"\"\"
     get_hub_greeting()
+    render_workspace_analista()
     
     col_right = render_cargo_badge(title, subtitle)
 
