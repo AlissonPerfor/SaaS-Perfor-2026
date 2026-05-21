@@ -335,28 +335,27 @@ def render_ga4() -> None:
     components.html("""
     <script>
     const map = {
-        'Choose a date range': 'Escolha um período de análise',
+        'Choose a date range': 'Escolha uma data para análise',
         'None': 'Personalizado',
         'Past Week': 'Últimos 7 Dias',
-        'Past Month': 'Últimos 30 dias',
+        'Past Month': 'Mês atual',
         'Past 3 Months': 'Últimos 3 Meses',
         'Past 6 Months': 'Últimos 6 meses',
         'Past Year': 'Ano Atual',
         'Past 2 Years': 'Últimos 2 Anos'
     };
     
-    // Acessa o DOM principal através do iframe do Streamlit
     const parentDoc = window.parent.document;
     
     const translate = () => {
-        parentDoc.querySelectorAll('span, li, div').forEach(el => {
-            if(el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
-                let text = el.innerText.trim();
-                if(map[text]) {
-                    el.innerText = map[text];
-                }
+        const walker = parentDoc.createTreeWalker(parentDoc.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while(node = walker.nextNode()) {
+            let text = node.nodeValue.trim();
+            if(map[text]) {
+                node.nodeValue = node.nodeValue.replace(text, map[text]);
             }
-        });
+        }
     };
     
     const observer = new MutationObserver(translate);
