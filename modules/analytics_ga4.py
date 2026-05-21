@@ -91,6 +91,52 @@ def fetch_ga4_data(property_id: str, report_type: str):
             ],
             date_ranges=[DateRange(start_date="30daysAgo", end_date="today")],
         )
+        
+        response = client.run_report(request)
+        data = []
+        for row in response.rows:
+            data.append({
+                "source_medium": row.dimension_values[0].value,
+                "sessions": int(row.metric_values[0].value),
+                "engagement_rate": float(row.metric_values[1].value),
+                "purchases": int(row.metric_values[2].value),
+                "total_revenue": float(row.metric_values[3].value)
+            })
+            
+        df = pd.DataFrame(data)
+        if df.empty:
+            return df
+            
+        df['Canal'] = df['source_medium'].apply(map_perfor_channels)
+        
+        grouped = df.groupby('Canal').agg({
+            'sessions': 'sum',
+            'purchases': 'sum',
+            'total_revenue': 'sum',
+            'engagement_rate': 'mean' # Média simples para exibição limpa
+        }).reset_index()
+        
+        # Cálculos Inteligentes locais (Pandas)
+        grouped['Taxa de Engajamento'] = (grouped['engagement_rate'] * 100).map("{:.2f}%".format)
+        grouped['Taxa de Eventos Principais por Sessão: Purchase'] = ((grouped['purchases'] / grouped['sessions']) * 100).map("{:.2f}%".format)
+        grouped['Receita Média de Compra'] = (grouped['total_revenue'] / grouped['purchases']).fillna(0.0)
+        
+        # Ordenação estratégica
+        grouped = grouped.sort_values(by='total_revenue', ascending=False)
+        
+        # Formatação monetária final para a UI Premium
+        grouped['Receita Total'] = grouped['total_revenue'].map("R$ {:,.2f}".format).str.replace(",", "v").str.replace(".", ",").str.replace("v", ".")
+        grouped['Receita Média de Compra'] = grouped['Receita Média de Compra'].map("R$ {:,.2f}".format).str.replace(",", "v").str.replace(".", ",").str.replace("v", ".")
+        
+        final_df = grouped[[
+            'Canal', 'sessions', 'Taxa de Engajamento', 'purchases', 
+            'Taxa de Eventos Principais por Sessão: Purchase', 'Receita Total', 'Receita Média de Compra'
+        ]].rename(columns={
+            'sessions': 'Sessões',
+            'purchases': 'Eventos Principais: Purchase'
+        })
+        
+        return final_df
     elif report_type == "produtos":
         request = RunReportRequest(
             property=property_uri,
@@ -103,10 +149,7 @@ def fetch_ga4_data(property_id: str, report_type: str):
             ],
             date_ranges=[DateRange(start_date="30daysAgo", end_date="today")],
         )
-    else:
-        return None
-
-    try:
+        
         response = client.run_report(request)
         data = []
         for row in response.rows:
@@ -117,43 +160,14 @@ def fetch_ga4_data(property_id: str, report_type: str):
         if not data:
             return pd.DataFrame()
             
-        if report_type == "canais":
-            cols = ["sourceMedium", "Sessões", "Taxa de Engajamento", "Eventos Principais: Purchase", "Receita Total"]
-            df = pd.DataFrame(data, columns=cols)
-            df["Canal"] = df["sourceMedium"].apply(map_perfor_channels)
-            
-            # Aproximação para média ponderada da Taxa de Engajamento
-            df["_engaged_sessions_approx"] = df["Taxa de Engajamento"] * df["Sessões"]
-            
-            import numpy as np
-            grouped = df.groupby("Canal").agg({
-                "Sessões": "sum",
-                "Eventos Principais: Purchase": "sum",
-                "Receita Total": "sum",
-                "_engaged_sessions_approx": "sum"
-            }).reset_index()
-            
-            grouped["Taxa de Engajamento"] = grouped["_engaged_sessions_approx"] / grouped["Sessões"]
-            grouped["Taxa de Engajamento"] = grouped["Taxa de Engajamento"].fillna(0)
-            
-            grouped["Taxa de Eventos Principais por Sessão: Purchase"] = (grouped["Eventos Principais: Purchase"] / grouped["Sessões"]) * 100
-            grouped["Taxa de Eventos Principais por Sessão: Purchase"] = grouped["Taxa de Eventos Principais por Sessão: Purchase"].fillna(0)
-            
-            grouped["Receita Média de Compra"] = grouped["Receita Total"] / grouped["Eventos Principais: Purchase"]
-            grouped["Receita Média de Compra"] = grouped["Receita Média de Compra"].replace([np.inf, -np.inf], np.nan).fillna(0.0)
-            
-            grouped = grouped.sort_values(by="Receita Total", ascending=False)
-            return grouped
-        elif report_type == "produtos":
-            cols = ["Produto", "Itens vistos", "Itens adicionados ao carrinho", "Itens comprados", "Receita do item"]
-            df = pd.DataFrame(data, columns=cols)
-            # Calculando Taxa de Conversão do Produto
-            df["Taxa de Conversão do Produto"] = (df["Itens comprados"] / df["Itens vistos"]) * 100
-            df["Taxa de Conversão do Produto"] = df["Taxa de Conversão do Produto"].fillna(0)
-            df = df.sort_values(by="Receita do item", ascending=False)
-            return df
-    except Exception as e:
-        st.error(f"Erro ao buscar dados da API do GA4: {str(e)}")
+        cols = ["Produto", "Itens vistos", "Itens adicionados ao carrinho", "Itens comprados", "Receita do item"]
+        df = pd.DataFrame(data, columns=cols)
+        # Calculando Taxa de Conversão do Produto
+        df["Taxa de Conversão do Produto"] = (df["Itens comprados"] / df["Itens vistos"]) * 100
+        df["Taxa de Conversão do Produto"] = df["Taxa de Conversão do Produto"].fillna(0)
+        df = df.sort_values(by="Receita do item", ascending=False)
+        return df
+    else:
         return None
 
 def analyze_with_gemini(df_canais, df_produtos):
@@ -260,20 +274,8 @@ def render_ga4() -> None:
     
     with tab1:
         if df_canais is not None and not df_canais.empty:
-            df_canais_display = df_canais.copy()
-            # Formatação
-            df_canais_display["Receita Total"] = df_canais_display["Receita Total"].apply(format_currency)
-            df_canais_display["Receita Média de Compra"] = df_canais_display["Receita Média de Compra"].apply(format_currency)
-            df_canais_display["Taxa de Engajamento"] = (df_canais_display["Taxa de Engajamento"] * 100).apply(format_percentage)
-            df_canais_display["Taxa de Eventos Principais por Sessão: Purchase"] = df_canais_display["Taxa de Eventos Principais por Sessão: Purchase"].apply(format_percentage)
-            df_canais_display["Sessões"] = df_canais_display["Sessões"].astype(int)
-            df_canais_display["Eventos Principais: Purchase"] = df_canais_display["Eventos Principais: Purchase"].astype(int)
-            
-            # Reordenar colunas
-            cols = ['Canal', 'Sessões', 'Taxa de Engajamento', 'Eventos Principais: Purchase', 'Taxa de Eventos Principais por Sessão: Purchase', 'Receita Total', 'Receita Média de Compra']
-            
             st.dataframe(
-                df_canais_display[cols],
+                df_canais,
                 use_container_width=True,
                 hide_index=True,
             )
