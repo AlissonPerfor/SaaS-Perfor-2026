@@ -73,10 +73,9 @@ def fetch_ga4_data(property_id: str, report_type: str):
             property=property_uri,
             dimensions=[Dimension(name="itemName")],
             metrics=[
-                Metric(name="sessions"),
-                Metric(name="screenPageViews"),
-                Metric(name="addToCarts"),
-                Metric(name="ecommercePurchases"),
+                Metric(name="itemsViewed"),
+                Metric(name="itemsAddedToCart"),
+                Metric(name="itemsPurchased"),
                 Metric(name="itemRevenue")
             ],
             date_ranges=[DateRange(start_date="30daysAgo", end_date="today")],
@@ -101,12 +100,12 @@ def fetch_ga4_data(property_id: str, report_type: str):
             df = df.sort_values(by="Receita Total", ascending=False)
             return df
         elif report_type == "produtos":
-            cols = ["Produto", "Sessões", "Visualizações", "Adições ao Carrinho", "Compras", "Receita"]
+            cols = ["Produto", "Itens vistos", "Itens adicionados ao carrinho", "Itens comprados", "Receita do item"]
             df = pd.DataFrame(data, columns=cols)
             # Calculando Taxa de Conversão do Produto
-            df["Taxa de Conversão do Produto"] = (df["Compras"] / df["Sessões"]) * 100
+            df["Taxa de Conversão do Produto"] = (df["Itens comprados"] / df["Itens vistos"]) * 100
             df["Taxa de Conversão do Produto"] = df["Taxa de Conversão do Produto"].fillna(0)
-            df = df.sort_values(by="Receita", ascending=False)
+            df = df.sort_values(by="Receita do item", ascending=False)
             return df
     except Exception as e:
         st.error(f"Erro ao buscar dados da API do GA4: {str(e)}")
@@ -236,15 +235,14 @@ def render_ga4() -> None:
         if df_produtos is not None and not df_produtos.empty:
             df_prod_display = df_produtos.copy()
             # Formatação
-            df_prod_display["Receita"] = df_prod_display["Receita"].apply(format_currency)
+            df_prod_display["Receita do item"] = df_prod_display["Receita do item"].apply(format_currency)
             df_prod_display["Taxa de Conversão do Produto"] = df_prod_display["Taxa de Conversão do Produto"].apply(format_percentage)
-            df_prod_display["Sessões"] = df_prod_display["Sessões"].astype(int)
-            df_prod_display["Visualizações"] = df_prod_display["Visualizações"].astype(int)
-            df_prod_display["Adições ao Carrinho"] = df_prod_display["Adições ao Carrinho"].astype(int)
-            df_prod_display["Compras"] = df_prod_display["Compras"].astype(int)
+            df_prod_display["Itens vistos"] = df_prod_display["Itens vistos"].astype(int)
+            df_prod_display["Itens adicionados ao carrinho"] = df_prod_display["Itens adicionados ao carrinho"].astype(int)
+            df_prod_display["Itens comprados"] = df_prod_display["Itens comprados"].astype(int)
             
             # Reordenar colunas
-            cols = ["Produto", "Sessões", "Visualizações", "Adições ao Carrinho", "Compras", "Taxa de Conversão do Produto", "Receita"]
+            cols = ["Produto", "Itens vistos", "Itens adicionados ao carrinho", "Itens comprados", "Taxa de Conversão do Produto", "Receita do item"]
             st.dataframe(
                 df_prod_display[cols],
                 use_container_width=True,
