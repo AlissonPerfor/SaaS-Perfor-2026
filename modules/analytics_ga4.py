@@ -101,16 +101,12 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
     if google_secrets and "private_key" in google_secrets:
         raw_key = str(google_secrets["private_key"]).strip()
         
-        # Reconstrução Absoluta do PEM (Ignora sujeiras do TOML/Cloud)
-        raw_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
-        raw_key = raw_key.replace("-----END PRIVATE KEY-----", "")
-        raw_key = raw_key.replace("\\n", "")
-        raw_key = raw_key.replace("\n", "")
-        raw_key = raw_key.replace(" ", "")
+        # Higienização Tripla Anti-Corrupção de Strings do Cursor
+        if raw_key.startswith('"') and raw_key.endswith('"'):
+            raw_key = raw_key[1:-1]
         
-        import textwrap
-        wrapped_key = "\n".join(textwrap.wrap(raw_key, 64))
-        google_secrets["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_key}\n-----END PRIVATE KEY-----\n"
+        raw_key = raw_key.replace("\\\\n", "\n").replace("\\n", "\n")
+        google_secrets["private_key"] = raw_key
 
     try:
         client = BetaAnalyticsDataClient.from_service_account_info(google_secrets)
@@ -323,6 +319,14 @@ def render_ga4() -> None:
         max-width: 320px;
         margin-bottom: 12px;
     }
+    
+    /* Remove native Streamlit date presets in popup */
+    div[data-baseweb="calendar"] div[data-baseweb="select"] {
+        display: none !important;
+    }
+    div[data-baseweb="calendar"] div:has(> span:contains("Choose a date range")) {
+        display: none !important;
+    }
     </style>
     ''', unsafe_allow_html=True)
     
@@ -366,14 +370,14 @@ def render_ga4() -> None:
                 label_visibility="collapsed"
             )
         else:
-            date_range = st.date_input(
-                "Data",
-                value=default_dates,
-                max_value=today,
-                format="DD/MM/YYYY",
-                label_visibility="collapsed",
-                disabled=True
-            )
+            date_range = default_dates
+            # Visual de input bloqueado via HTML para evitar o popup em inglês do Streamlit
+            st.markdown(f"""
+            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); 
+                        padding: 0 12px; border-radius: 8px; color: #8a99ad; font-size: 0.95rem; height: 38px; display: flex; align-items: center; cursor: not-allowed;">
+                {date_range[0].strftime('%d/%m/%Y')} – {date_range[1].strftime('%d/%m/%Y')}
+            </div>
+            """, unsafe_allow_html=True)
     
     # Verifica se o usuário já selecionou ambas as datas
     if len(date_range) != 2:
