@@ -10,7 +10,7 @@ Multi-tenancy:
 
 import calendar
 import textwrap
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 import streamlit as st
@@ -69,7 +69,51 @@ ALAVANCAS = [
 ]
 
 
+# ── Hub de Boas-Vindas Estratégico ───────────────────────────────────────────
+
+def get_hub_greeting() -> None:
+    agora = datetime.now()
+    hora = agora.hour
+    
+    if 5 <= hora < 12:
+        saudacao = "Bom dia"
+    elif 12 <= hora < 18:
+        saudacao = "Boa tarde"
+    elif 18 <= hora <= 23:
+        saudacao = "Boa noite"
+    else:
+        saudacao = "Boa madrugada"
+        
+    user_data = st.session_state.get("user_data") or {}
+    nome_completo = user_data.get("nome", "Álisson")
+    nome_usuario = nome_completo.split()[0] if nome_completo else "Álisson"
+    
+    dia_atual = agora.day
+    mes_atual = agora.month
+    
+    meses_extenso = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    prox_mes_idx = mes_atual % 12
+    prox_mes_nome = meses_extenso[prox_mes_idx]
+    
+    if dia_atual <= 15:
+        msg_estrategica = "Foco em <strong>Execução e Auditoria de Metas</strong>."
+        icone = "🎯"
+    else:
+        msg_estrategica = f"Hora de alinhar o planejamento de <strong>{prox_mes_nome}</strong>."
+        icone = "🗓️"
+
+    st.markdown(f"""
+    <div style="margin-bottom: 24px; padding: 24px 28px; border-radius: 12px; background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.06) 100%); border: 1px solid rgba(255,255,255,0.05);">
+        <h1 style="font-size: 2.2rem; font-weight: 700; color: #FAFAFA; margin: 0 0 6px 0; letter-spacing: -0.5px;">{saudacao}, {nome_usuario}! 👋</h1>
+        <p style="color: #D1D5DB; font-size: 1.05rem; margin: 0; letter-spacing: 0.3px;">
+            {icone} <span style="color:#9CA3AF;">Diretriz Estratégica:</span> {msg_estrategica}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ── Função pública principal ──────────────────────────────────────────────────
+
 
 def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via Google Sheets") -> None:
     """
@@ -77,6 +121,8 @@ def render_visao_geral(title="✦ Dashboard", subtitle="Dados em tempo real via 
     - Se projeto ativo: Mostra dados apenas dele.
     - Se nível agência: Mostra dados agregados de todos os projetos visíveis.
     """
+    get_hub_greeting()
+    
     col_right = render_cargo_badge(title, subtitle)
 
     projetos = get_all_projects()
