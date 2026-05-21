@@ -16,6 +16,23 @@ def format_percentage(val):
         return "0.00%"
     return f"{val:,.2f}%"
 
+def map_perfor_channels(source_medium):
+    sm = str(source_medium).lower()
+    if 'facebook / cpc' in sm or 'instagram / cpc' in sm or 'anuncio' in sm:
+        return "01. Facebook CPC"
+    elif 'google / cpc' in sm:
+        return "02. Google CPC"
+    elif '(direct)' in sm:
+        return "07. Direto"
+    elif 'instagram' in sm or 'bio' in sm:
+        return "08. Perfil Instagram"
+    elif 'email' in sm or 'newsletter' in sm:
+        return "04. E-mail"
+    elif 'organic' in sm:
+        return "06. Orgânico"
+    else:
+        return "Outros / Não Definido"
+
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_ga4_data(property_id: str, report_type: str):
     """
@@ -65,7 +82,7 @@ def fetch_ga4_data(property_id: str, report_type: str):
     if report_type == "canais":
         request = RunReportRequest(
             property=property_uri,
-            dimensions=[Dimension(name="sessionCustomChannelGroup")],
+            dimensions=[Dimension(name="sessionSourceMedium")],
             metrics=[
                 Metric(name="sessions"),
                 Metric(name="engagementRate"),
@@ -101,18 +118,32 @@ def fetch_ga4_data(property_id: str, report_type: str):
             return pd.DataFrame()
             
         if report_type == "canais":
-            cols = ["Canal", "Sessões", "Taxa de Engajamento", "Eventos Principais: Purchase", "Receita Total"]
+            cols = ["sourceMedium", "Sessões", "Taxa de Engajamento", "Eventos Principais: Purchase", "Receita Total"]
             df = pd.DataFrame(data, columns=cols)
-            df["Taxa de Eventos Principais por Sessão: Purchase"] = (df["Eventos Principais: Purchase"] / df["Sessões"]) * 100
-            df["Taxa de Eventos Principais por Sessão: Purchase"] = df["Taxa de Eventos Principais por Sessão: Purchase"].fillna(0)
+            df["Canal"] = df["sourceMedium"].apply(map_perfor_channels)
             
-            # Usando import numpy as np caso pandas divisão por zero retorne inf
+            # Aproximação para média ponderada da Taxa de Engajamento
+            df["_engaged_sessions_approx"] = df["Taxa de Engajamento"] * df["Sessões"]
+            
             import numpy as np
-            df["Receita Média de Compra"] = df["Receita Total"] / df["Eventos Principais: Purchase"]
-            df["Receita Média de Compra"] = df["Receita Média de Compra"].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            grouped = df.groupby("Canal").agg({
+                "Sessões": "sum",
+                "Eventos Principais: Purchase": "sum",
+                "Receita Total": "sum",
+                "_engaged_sessions_approx": "sum"
+            }).reset_index()
             
-            df = df.sort_values(by="Receita Total", ascending=False)
-            return df
+            grouped["Taxa de Engajamento"] = grouped["_engaged_sessions_approx"] / grouped["Sessões"]
+            grouped["Taxa de Engajamento"] = grouped["Taxa de Engajamento"].fillna(0)
+            
+            grouped["Taxa de Eventos Principais por Sessão: Purchase"] = (grouped["Eventos Principais: Purchase"] / grouped["Sessões"]) * 100
+            grouped["Taxa de Eventos Principais por Sessão: Purchase"] = grouped["Taxa de Eventos Principais por Sessão: Purchase"].fillna(0)
+            
+            grouped["Receita Média de Compra"] = grouped["Receita Total"] / grouped["Eventos Principais: Purchase"]
+            grouped["Receita Média de Compra"] = grouped["Receita Média de Compra"].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            
+            grouped = grouped.sort_values(by="Receita Total", ascending=False)
+            return grouped
         elif report_type == "produtos":
             cols = ["Produto", "Itens vistos", "Itens adicionados ao carrinho", "Itens comprados", "Receita do item"]
             df = pd.DataFrame(data, columns=cols)
