@@ -47,7 +47,14 @@ def fetch_ga4_data(property_id: str, report_type: str):
             return None
 
     try:
-        credentials = service_account.Credentials.from_service_account_info(creds_dict)
+        # Garante que as credenciais são um dicionário mutável
+        secrets_dict = dict(creds_dict)
+        
+        # Correção cirúrgica para leitura do arquivo PEM do Google (newlines escapadas no secrets)
+        if "private_key" in secrets_dict and isinstance(secrets_dict["private_key"], str):
+            secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
+
+        credentials = service_account.Credentials.from_service_account_info(secrets_dict)
         client = BetaAnalyticsDataClient(credentials=credentials)
     except Exception as e:
         st.error(f"Erro ao autenticar no GCP: {str(e)}")
