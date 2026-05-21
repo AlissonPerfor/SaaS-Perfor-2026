@@ -452,10 +452,60 @@ def render_criativos():
         """, unsafe_allow_html=True)
         return
 
-    with st.spinner("Conectando ao Meta Ads..."):
-        data=_fetch_meta_ads(meta_id,since,until)
+    # --- CACHE & SYNC LOGIC (AXOLY STYLE) ---
+    if 'meta_data_cache' not in st.session_state:
+        st.session_state.meta_data_cache = None
+    if 'meta_cache_proj_id' not in st.session_state:
+        st.session_state.meta_cache_proj_id = None
+    if 'meta_cache_period' not in st.session_state:
+        st.session_state.meta_cache_period = None
+
+    current_proj_id = projeto.get("id", meta_id)
+    
+    # Reset cache on project change
+    if st.session_state.meta_cache_proj_id != current_proj_id:
+        st.session_state.meta_data_cache = None
+        st.session_state.meta_cache_proj_id = current_proj_id
+
+    # Reset cache on period change
+    cache_period_key = f"{since}_{until}"
+    if st.session_state.meta_cache_period != cache_period_key:
+        st.session_state.meta_data_cache = None
+        st.session_state.meta_cache_period = cache_period_key
+
+    if st.session_state.meta_data_cache is None:
+        st.markdown(
+            """
+            <div class="glass-card" style="text-align:center;padding:48px 24px; margin-top:10px;">
+                <p style="color:#60A5FA;font-size:2.5rem;margin-bottom:16px;"><i class="bi bi-cloud-arrow-down-fill"></i></p>
+                <h3 style="color:#FAFAFA;font-size:1.3rem;margin-bottom:8px;">Sincronização do Meta Ads</h3>
+                <p style="color:#9CA3AF;font-size:0.9rem;margin-bottom:28px;max-width:500px;margin-left:auto;margin-right:auto;">
+                    Para manter a interface rápida, os dados não são carregados automaticamente. Clique no botão abaixo para buscar as métricas mais recentes desta conta.
+                </p>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1.5, 1])
+        with c2:
+            if st.button("🔄 Sincronizar Dados do Meta Ads", use_container_width=True, type="primary"):
+                with st.spinner("Conectando ao Meta Ads..."):
+                    st.session_state.meta_data_cache = _fetch_meta_ads(meta_id, since, until)
+                st.rerun()
+        return
+
+    top1, top2 = st.columns([4, 1])
+    with top2:
+        if st.button("🔄 Atualizar Dados", use_container_width=True):
+            st.session_state.meta_data_cache = None
+            st.rerun()
+            
+    data = st.session_state.meta_data_cache
+    
     if data.get("erro"):
-        st.error(f"Erro Meta API: {data['erro']}"); return
+        st.error(f"Erro Meta API: {data['erro']}")
+        st.session_state.meta_data_cache = None
+        return
 
     raw=data["ads"]
     if raw:
