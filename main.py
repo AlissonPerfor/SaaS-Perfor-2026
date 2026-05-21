@@ -556,9 +556,8 @@ if nivel == "agencia":
 
     elif pagina_ativa == "CEO Dashboard":
         if is_ceo():
-            from modules.dashboard import render_visao_geral
-            # CEO Dashboard reutiliza a visão agregada
-            render_visao_geral(title="CEO Dashboard", subtitle="Visão consolidada de toda a agência.")
+            from modules.dashboard import render_ceo_dashboard
+            render_ceo_dashboard()
         else:
             st.warning("Acesso restrito ao CEO.")
 
@@ -569,8 +568,8 @@ if nivel == "agencia":
 elif nivel == "projeto":
     # ── Páginas do nível projeto ──────────────────────────────────────────
     if pagina_ativa == "Dashboard":
-        from modules.dashboard import render_visao_geral
-        render_visao_geral()
+        from modules.dashboard import render_project_dashboard
+        render_project_dashboard()
 
     elif pagina_ativa == "Reports":
         from modules.report_generator import render_report
