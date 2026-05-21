@@ -342,7 +342,26 @@ def render_ga4() -> None:
         'Past 3 Months': 'Últimos 3 Meses',
         'Past 6 Months': 'Últimos 6 meses',
         'Past Year': 'Ano Atual',
-        'None': 'Personalizado'
+        'None': 'Personalizado',
+        'January': 'Janeiro',
+        'February': 'Fevereiro',
+        'March': 'Março',
+        'April': 'Abril',
+        'May': 'Maio',
+        'June': 'Junho',
+        'July': 'Julho',
+        'August': 'Agosto',
+        'September': 'Setembro',
+        'October': 'Outubro',
+        'November': 'Novembro',
+        'December': 'Dezembro',
+        'Su': 'Dom',
+        'Mo': 'Seg',
+        'Tu': 'Ter',
+        'We': 'Qua',
+        'Th': 'Qui',
+        'Fr': 'Sex',
+        'Sa': 'Sáb'
     };
     
     const parentDoc = window.parent.document;
