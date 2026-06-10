@@ -205,6 +205,8 @@ def _find_month_col(header_row: list, mes_abrev: str) -> Optional[int]:
     return None
 
 
+import re
+
 def _parse_valor(raw: str) -> Optional[float]:
     """
     Converte string de valor da planilha para float.
@@ -213,31 +215,45 @@ def _parse_valor(raw: str) -> Optional[float]:
     if not raw or raw in ("-", "—", "N/A", ""):
         return None
 
-    cleaned = (
-        raw
-        .replace("R$", "")
-        .replace("%", "")
-        .replace("\xa0", "")   # non-breaking space
-        .replace("x", "")      # ROAS
-        .replace("X", "")      # ROAS
-        .strip()
-    )
+    # Mantém apenas dígitos, vírgula, ponto e sinal de menos
+    cleaned = re.sub(r'[^\d.,\-]', '', raw)
+    
+    if not cleaned or cleaned == "-":
+        return None
 
     # Detecta se usa padrão BR (vírgula decimal) ou US (ponto decimal)
     has_comma = "," in cleaned
     has_dot   = "." in cleaned
 
     if has_comma and has_dot:
-        # Padrão BR: 1.234,56 → remove pontos de milhar, troca vírgula por ponto
-        cleaned = cleaned.replace(".", "").replace(",", ".")
+        # Padrão BR: 1.234,56 → vírgula depois do ponto
+        # Padrão US: 1,234.56 → ponto depois da vírgula
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
     elif has_comma and not has_dot:
         # Pode ser decimal BR (1,5) ou milhar sem decimal (1,234)
-        # Se apenas 3 dígitos após a vírgula e sem ponto → milhar BR
         parts = cleaned.split(",")
-        if len(parts) == 2 and len(parts[1]) == 3 and parts[1].isdigit():
+        is_thousands = True
+        for p in parts[1:]:
+            if len(p) != 3 or not p.isdigit():
+                is_thousands = False
+                break
+        if is_thousands and len(parts) > 1:
             cleaned = cleaned.replace(",", "")  # milhar: 1,234 → 1234
         else:
             cleaned = cleaned.replace(",", ".")  # decimal: 1,5 → 1.5
+    elif has_dot and not has_comma:
+        # Pode ser milhar BR com ponto sem decimal (1.234) ou decimal US (1.5)
+        parts = cleaned.split(".")
+        is_thousands = True
+        for p in parts[1:]:
+            if len(p) != 3 or not p.isdigit():
+                is_thousands = False
+                break
+        if is_thousands and len(parts) > 1:
+            cleaned = cleaned.replace(".", "")  # milhar: 1.234 -> 1234
 
     try:
         return float(cleaned)

@@ -233,6 +233,38 @@ def fetch_ga4_data(property_id: str, report_type: str, start_date: str, end_date
         df["Taxa de Conversão do Produto"] = df["Taxa de Conversão do Produto"].fillna(0)
         df = df.sort_values(by="Receita do item", ascending=False)
         return df
+    elif report_type == "regioes":
+        request = RunReportRequest(
+            property=property_uri,
+            dimensions=[Dimension(name="region")],
+            metrics=[
+                Metric(name="totalRevenue"),
+                Metric(name="sessions")
+            ],
+            date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        )
+        
+        try:
+            response = client.run_report(request)
+        except Exception as e:
+            st.error(f"Erro ao buscar dados de Regiões na API do GA4: {str(e)}")
+            return pd.DataFrame()
+            
+        data = []
+        for row in response.rows:
+            data.append({
+                "Estado": row.dimension_values[0].value,
+                "Receita": float(row.metric_values[0].value),
+                "Sessões": int(row.metric_values[1].value)
+            })
+            
+        df = pd.DataFrame(data)
+        if df.empty:
+            return df
+            
+        df = df[~df['Estado'].isin(["(not set)", "", " "])]
+        df = df.sort_values(by="Receita", ascending=False)
+        return df
     else:
         return None
 

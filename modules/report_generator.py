@@ -12,6 +12,7 @@ import streamlit as st
 
 from core.context import get_active_project, render_cargo_badge
 from core.sheets import MESES_ABREV, get_gps_data, fmt_pct
+from modules.analytics_ga4 import fetch_ga4_data
 
 def format_money_full(value: Optional[float]) -> str:
     if value is None:
@@ -40,12 +41,23 @@ def render_report() -> None:
     if hoje.day <= 5 and hoje.month > 1:
         mes_padrao_idx = hoje.month - 2
 
+    MODELOS = [
+        "Semana 01 - Fechamento do Mês Anterior & Projeções",
+        "Semana 02 - Análise de Performance de Produtos (Curva ABC)",
+        "Semana 03 - Raio-X de Canais de Tráfego & Regiões",
+        "Semana 04 - Auditoria de Campanhas, Criativos & Otimizações"
+    ]
     with col_right:
         mes_sel = st.selectbox(
             "Mês",
             options=MESES_ABREV,
             index=mes_padrao_idx,
             key="sel_mes_report",
+        )
+        modelo_sel = st.selectbox(
+            "Selecione o Modelo de Report da Semana",
+            options=MODELOS,
+            key="sel_modelo_report"
         )
 
     with st.spinner(f"Gerando relatório de {projeto.get('nome_cliente') or projeto.get('nome', '')}..."):
@@ -75,6 +87,9 @@ def render_report() -> None:
     data_inicio_str = f"01/{mes_num:02d}"
     data_fim_str = f"{dia_atual:02d}/{mes_num:02d}"
     pacing_pct_str = f"{pacing_mes * 100:.0f}%"
+
+    start_date_ga4 = date(ano_atual, mes_num, 1).strftime("%Y-%m-%d")
+    end_date_ga4 = date(ano_atual, mes_num, dia_atual).strftime("%Y-%m-%d") if (ano_atual, mes_num) <= (hoje.year, hoje.month) else date(ano_atual, mes_num, total_dias).strftime("%Y-%m-%d")
 
     # 2. Desempenho de Vendas
     inv_total = format_money_full(real.get("Investimento Total"))
@@ -152,6 +167,60 @@ def render_report() -> None:
     cvr_real, cvr_meta, cvr_delta, cvr_emj = get_kpi_delta("Taxa de Conversão", invert=False)
     tmd_real, tmd_meta, tmd_delta, tmd_emj = get_kpi_delta("Ticket Médio", invert=False)
 
+    # Lógica Prescritiva Automatizada
+    prescricao = ""
+    if cvr_emj == '❌':
+        prescricao += "\n- **Conversão:** Redirecionamento de tráfego para produtos de alta conversão, ativação emergencial de régua de recuperação de checkout, e revisão de pontos de atrito ou carregamento na página do produto."
+    if tmd_emj == '❌':
+        prescricao += "\n- **Ticket Médio:** Ativação imediata de campanhas focadas em Kits/Combos, inclusão de regras de Cross-Sell estruturado no checkout e gatilhos de Frete Grátis progressivo."
+    if cps_emj == '❌':
+        prescricao += "\n- **Custo por Sessão:** Saturação de gancho identificada no Meta Ads. Escalar novos testes na matriz criativa e focar o remarketing em narrativas de prova social e urgência."
+    
+    if not prescricao:
+        prescricao = "\n- Métricas dentro ou acima da meta. Manter escala e monitoramento de saturação."
+
+    # Blocos extras para Semana 02 e 03
+    bloco_extra = ""
+    if modelo_sel.startswith("Semana 02"):
+        ga4_id = projeto.get('ga4_id')
+        if ga4_id:
+            with st.spinner("Buscando dados de produtos do GA4..."):
+                df_produtos = fetch_ga4_data(ga4_id, "produtos", start_date_ga4, end_date_ga4)
+            if df_produtos is not None and not df_produtos.empty:
+                bloco_extra += "\n📦 *Análise de Performance de Produtos (Curva ABC)*\n"
+                top_3 = df_produtos.head(3)
+                for _, row in top_3.iterrows():
+                    bloco_extra += f"\n• {row['Produto']}: {format_money_full(row['Receita do item'])} ({int(row['Itens vistos'])} views)"
+                bloco_extra += "\n"
+            else:
+                bloco_extra += "\n[Sem dados de produtos no GA4 para este período]\n"
+        else:
+            bloco_extra += "\n[Aviso: ID do GA4 não configurado no projeto]\n"
+
+    elif modelo_sel.startswith("Semana 03"):
+        ga4_id = projeto.get('ga4_id')
+        if ga4_id:
+            with st.spinner("Buscando canais e regiões do GA4..."):
+                res_canais = fetch_ga4_data(ga4_id, "canais", start_date_ga4, end_date_ga4)
+                df_regioes = fetch_ga4_data(ga4_id, "regioes", start_date_ga4, end_date_ga4)
+            
+            bloco_extra += "\n🌐 *Raio-X de Canais de Tráfego & Regiões*\n"
+            if res_canais is not None:
+                df_canais, _ = res_canais
+                if df_canais is not None and not df_canais.empty:
+                    bloco_extra += "\n*Top Canais de Aquisição*"
+                    for _, row in df_canais.head(4).iterrows():
+                        bloco_extra += f"\n• {row['Canal']}: {row['Receita Total']} ({row['Sessões']} sessões)"
+                    bloco_extra += "\n"
+            
+            if df_regioes is not None and not df_regioes.empty:
+                bloco_extra += "\n*Top 3 Estados (Receita)*"
+                for _, row in df_regioes.head(3).iterrows():
+                    bloco_extra += f"\n• {row['Estado']}: {format_money_full(row['Receita'])} ({int(row['Sessões'])} sessões)"
+                bloco_extra += "\n"
+        else:
+            bloco_extra += "\n[Aviso: ID do GA4 não configurado no projeto]\n"
+
     report_text = f'''*Feedback de Resultados* 📊
 {data_inicio_str} até {data_fim_str} · (Dia {dia_atual}/{total_dias} - {pacing_pct_str} do mês)
 
@@ -177,7 +246,8 @@ def render_report() -> None:
 ➡️ Ticket Médio: *{tmd_real}* | Meta: *{tmd_meta}*{tmd_delta} {tmd_emj}
 
 📝 *Análise de Cenário e Próximos Passos:*
-'''
+{prescricao}
+{bloco_extra}'''
 
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
     
