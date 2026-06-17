@@ -157,19 +157,26 @@ def get_gps_data(sheet_id: str, mes_abrev: str) -> dict:
         result["erro"] = "A planilha tem menos de 4 linhas — verifique a configuração."
         return result
 
-    # Linha 4 (índice 3) = cabeçalho com os meses
-    header_row = all_values[3]
+    # Procura a coluna do mês nas primeiras 5 linhas
+    col_idx = None
+    header_idx = -1
+    for i in range(min(5, len(all_values))):
+        idx = _find_month_col(all_values[i], mes_abrev)
+        if idx is not None:
+            col_idx = idx
+            header_idx = i
+            break
 
-    col_idx = _find_month_col(header_row, mes_abrev)
     if col_idx is None:
         result["erro"] = (
-            f"Mês '{mes_abrev}' não encontrado na linha 4 da planilha. "
-            "Verifique se os cabeçalhos de mês estão na linha correta."
+            f"Mês '{mes_abrev}' não encontrado nas primeiras 5 linhas da planilha. "
+            "Verifique se os cabeçalhos de mês estão corretos."
         )
         return result
 
-    # Varre todas as linhas a partir da linha 5 (índice 4)
-    for row in all_values[4:]:
+    # Varre todas as linhas a partir da linha 5 (índice 4) ou logo após o cabeçalho
+    start_row = max(4, header_idx + 1)
+    for row in all_values[start_row:]:
         if not row:
             continue
 
