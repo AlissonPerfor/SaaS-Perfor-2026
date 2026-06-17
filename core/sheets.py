@@ -176,6 +176,8 @@ def get_gps_data(sheet_id: str, mes_abrev: str) -> dict:
 
     # Varre todas as linhas a partir da linha 5 (índice 4) ou logo após o cabeçalho
     start_row = max(4, header_idx + 1)
+    is_metas_section = False
+
     for row in all_values[start_row:]:
         if not row:
             continue
@@ -184,16 +186,41 @@ def get_gps_data(sheet_id: str, mes_abrev: str) -> dict:
         if not label:
             continue
 
+        # Detecta se entramos na seção de Metas (para planilhas divididas)
+        if "metas" in label.lower() and "gps" in label.lower():
+            is_metas_section = True
+
         valor_raw = row[col_idx].strip() if len(row) > col_idx else ""
 
         for metrica in METRICAS:
             label_realizado = f"{metrica} | Realizado"
             label_projetado = f"{metrica} | Projetado"
 
+            # 1. Busca por sufixo (padrão antigo ou planilhas completas)
             if label_realizado in label:
                 result["realizado"][metrica] = _parse_valor(valor_raw)
             elif label_projetado in label:
                 result["projetado"][metrica] = _parse_valor(valor_raw)
+            
+            # 2. Busca exata (fallback para planilhas em seções sem sufixo)
+            elif label.lower() == metrica.lower():
+                val = _parse_valor(valor_raw)
+                if val is not None:
+                    if is_metas_section:
+                        if result["projetado"][metrica] is None:
+                            result["projetado"][metrica] = val
+                    else:
+                        if result["realizado"][metrica] is None:
+                            result["realizado"][metrica] = val
+
+        # 3. Aliases conhecidos (ex: "Meta projetada" serve como Receita Projetada)
+        if "meta projetada" in label.lower():
+            val = _parse_valor(valor_raw)
+            if val is not None:
+                if result["projetado"]["Receita Faturada"] is None:
+                    result["projetado"]["Receita Faturada"] = val
+                if result["projetado"]["Receita Captada"] is None:
+                    result["projetado"]["Receita Captada"] = val
 
     return result
 
