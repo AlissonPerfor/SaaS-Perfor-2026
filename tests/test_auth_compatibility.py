@@ -1,4 +1,5 @@
 """SDK e Streamlit reais; somente o transporte remoto é simulado."""
+import json
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -8,6 +9,78 @@ from streamlit.testing.v1 import AppTest
 from supabase import ClientOptions, create_client
 
 from core import auth, database
+
+
+def test_two_streamlit_users_keep_sdk_tokens_and_project_state_isolated():
+    script = '''
+import streamlit as st
+from core import auth
+from core.context import init_project_context
+if auth.check_login():
+    init_project_context()
+    st.write(st.session_state.user_data["email"])
+    st.button("Logout", on_click=auth.logout)
+else:
+    auth.show_login_page()
+'''
+    def user(identity):
+        return {"id": identity, "aud": "authenticated", "role": "authenticated",
+                "email": f"{identity}@example.com", "created_at": "2026-01-01T00:00:00Z",
+                "app_metadata": {}, "user_metadata": {}}
+
+    def handler(request):
+        if request.url.path.endswith("/token"):
+            identity = json.loads(request.content)["email"].split("@")[0]
+            return httpx.Response(200, json={"access_token": identity,
+                "refresh_token": f"refresh-{identity}", "token_type": "bearer",
+                "expires_in": 3600, "expires_at": int(time.time()) + 3600,
+                "user": user(identity)})
+        identity = request.headers["authorization"].removeprefix("Bearer ")
+        if request.url.path.endswith("/user"):
+            return httpx.Response(200, json=user(identity))
+        if request.url.path.endswith("/usuarios"):
+            return httpx.Response(200, json=[{"cargo": "analista", "squad": None}])
+        if request.url.path.endswith("/projetos"):
+            return httpx.Response(200, json=[{"id": name, "analista_email": f"{name}@example.com"} for name in ("a", "b")])
+        if request.url.path.endswith("/logout"):
+            assert request.url.params["scope"] == "local"
+            return httpx.Response(204)
+        raise AssertionError(f"Unexpected request: {request.url.path}")
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as transport:
+        def factory(url, key, options):
+            options.httpx_client = transport
+            return create_client(url, key, options=options)
+
+        def login(app, identity):
+            app.text_input[0].input(f"{identity}@example.com")
+            app.text_input[1].input("test-password")
+            app.button[1].click().run()
+            assert not app.exception
+
+        with patch.object(database, "create_client", side_effect=factory):
+            first, second = AppTest.from_string(script), AppTest.from_string(script)
+            for app in (first, second):
+                app.secrets["supabase"] = {"url": "https://example.supabase.co", "key": "test-key"}
+                app.run()
+            login(first, "a")
+            login(second, "b")
+            for app, identity in ((first, "a"), (second, "b"), (first, "a")):
+                app.run()
+                assert not app.exception
+                assert app.session_state["user_data"]["id"] == identity
+                assert [p["id"] for p in app.session_state["projetos_visiveis"]] == [identity]
+                assert app.session_state["_supabase_client"].auth.get_session().access_token == identity
+            first.session_state["report"] = "private-a"
+            first.button[0].click().run()
+            second.run()
+            assert second.session_state["logged_in"] is True
+            assert second.session_state["user_data"]["id"] == "b"
+            login(first, "b")
+            assert "report" not in first.session_state
+            assert first.session_state["projeto_ativo"] is None
+            assert [p["id"] for p in first.session_state["projetos_visiveis"]] == ["b"]
+            assert first.session_state["_supabase_client"] is not second.session_state["_supabase_client"]
 
 
 def test_real_sdk_refresh_identity_headers_and_local_logout(monkeypatch):
