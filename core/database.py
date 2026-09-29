@@ -2,17 +2,27 @@ import streamlit as st
 from supabase import create_client
 
 
-# ── Conexão com Supabase (cacheada — uma instância por sessão) ────────────────
+# ── Conexão com Supabase (isolada por sessão do Streamlit) ──────────────────
 
-@st.cache_resource
-def init_connection():
-    """Inicializa o client Supabase usando as credenciais do secrets.toml."""
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    return create_client(url, key)
+def get_supabase():
+    """
+    Retorna um client Supabase exclusivo da sessão atual do Streamlit.
+
+    IMPORTANTE:
+    O client de Auth mantém estado (access/refresh token). Por isso ele não pode
+    ficar em st.cache_resource, que pode ser compartilhado entre usuários.
+    Guardar o client em st.session_state mantém cada navegador/sessão isolado.
+    """
+    if "_supabase_client" not in st.session_state:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        st.session_state["_supabase_client"] = create_client(url, key)
+    return st.session_state["_supabase_client"]
 
 
-supabase = init_connection()
+def clear_supabase_client() -> None:
+    """Descarta o client da sessão atual para forçar uma instância limpa."""
+    st.session_state.pop("_supabase_client", None)
 
 
 # ── Autenticação Nativa (Supabase Auth) ───────────────────────────────────────
@@ -23,6 +33,7 @@ def verify_user(email_input: str, senha_input: str):
     Retorna os dados do usuário (dict) em caso de sucesso, ou None se falhar.
     """
     try:
+        supabase = get_supabase()
         response = supabase.auth.sign_in_with_password({"email": email_input, "password": senha_input})
         user = response.user
         if user:
@@ -46,7 +57,7 @@ def verify_user(email_input: str, senha_input: str):
 def reset_password(email_input: str) -> bool:
     """Envia e-mail de recuperação de senha via Supabase Auth."""
     try:
-        supabase.auth.reset_password_for_email(email_input)
+        get_supabase().auth.reset_password_for_email(email_input)
         return True
     except Exception as e:
         return False
@@ -60,7 +71,7 @@ def get_user_profile(email: str) -> dict:
     """
     defaults = {"cargo": "analista", "squad": None}
     try:
-        resp = supabase.table("usuarios").select("cargo, squad").eq("email", email).execute()
+        resp = get_supabase().table("usuarios").select("cargo, squad").eq("email", email).execute()
         if resp.data:
             perfil = resp.data[0]
             # Normaliza cargo para minúsculas para comparações seguras
@@ -84,7 +95,7 @@ def get_projects(user_id: str, cargo: str, squad: str | None, email: str = "") -
     A comparação de cargo usa .lower() para evitar erros de case (analista/Analista/ANALISTA).
     """
     try:
-        query = supabase.table("projetos").select("*")
+        query = get_supabase().table("projetos").select("*")
 
         # Normaliza cargo para lowercase uma única vez
         cargo_norm = str(cargo).strip().lower() if cargo else "analista"
