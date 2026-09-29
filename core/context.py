@@ -69,7 +69,7 @@ def init_project_context() -> None:
 
     # Inicializa página ativa (módulo dentro do projeto)
     if "pagina_ativa" not in st.session_state:
-        st.session_state.pagina_ativa = "Visão Geral"
+        st.session_state.pagina_ativa = "Cockpit da Carteira"
 
 
 # ── Navegação entre Níveis ───────────────────────────────────────────────────
@@ -87,6 +87,14 @@ def navigate_to_agency() -> None:
     st.session_state.projeto_ativo = None
     st.session_state.nivel_navegacao = "agencia"
     st.session_state.pagina_ativa = "Visão Geral"
+    st.rerun()
+
+
+def navigate_to_portfolio() -> None:
+    """Abre a consolidação da carteira a partir de qualquer projeto."""
+    st.session_state.projeto_ativo = None
+    st.session_state.nivel_navegacao = "agencia"
+    st.session_state.pagina_ativa = "Cockpit da Carteira"
     st.rerun()
 
 
