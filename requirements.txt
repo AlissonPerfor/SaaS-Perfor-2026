@@ -1,5 +1,5 @@
-streamlit
-supabase
+streamlit==1.64.0
+supabase==2.31.0
 gspread
 google-auth
 facebook-business

@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from core.database import verify_user, reset_password, get_user_profile, supabase
+from core.database import verify_user, reset_password, get_supabase, clear_supabase_client
 
 
 # ── Utilitário ────────────────────────────────────────────────────────────────
@@ -19,26 +19,62 @@ def get_image_as_base64(file_path: str) -> str:
 
 # ── Verificação de Autenticação ───────────────────────────────────────────────
 
-def check_login() -> bool:
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-        st.session_state.user_data = None
-    
-    # REMOVIDO: A tentativa de recuperar a sessão via `supabase.auth.get_session()`
-    # foi removida porque o cliente do Supabase é global (`@st.cache_resource`).
-    # Usar isso faz com que a sessão do último usuário a logar no servidor vaze
-    # para todos os novos visitantes (como o bug relatado onde o Luigi entrou
-    # direto na conta do Leonardo).
+def _clear_user_session() -> None:
+    """Remove todo estado local associado ao usuário atual."""
+    clear_supabase_client()
+    st.session_state.clear()
 
-    return st.session_state.logged_in
+
+def check_login() -> bool:
+    """
+    Valida o estado de login da sessão atual.
+
+    Agora que o client Supabase é isolado por st.session_state, podemos consultar
+    a sessão do Auth com segurança sem risco de reutilizar a sessão de outro usuário.
+    """
+    if not st.session_state.get("logged_in") or not st.session_state.get("user_data"):
+        # Não apaga widgets do formulário em cada rerun de um visitante anônimo.
+        if st.session_state.get("logged_in") or st.session_state.get("user_data") or "_supabase_client" in st.session_state:
+            _clear_user_session()
+        return False
+
+    try:
+        client = get_supabase()
+        # get_session renova tokens expirados; get_user valida o JWT no servidor.
+        auth_session = client.auth.get_session()
+        if not auth_session or not getattr(auth_session, "user", None):
+            _clear_user_session()
+            return False
+
+        expected_user_id = (st.session_state.get("user_data") or {}).get("id")
+        current_user_id = getattr(auth_session.user, "id", None)
+
+        if not expected_user_id or str(current_user_id) != str(expected_user_id):
+            _clear_user_session()
+            return False
+
+        verified = client.auth.get_user(auth_session.access_token)
+        if not verified or not verified.user or str(verified.user.id) != str(expected_user_id):
+            _clear_user_session()
+            return False
+
+        return True
+    except Exception:
+        _clear_user_session()
+        return False
+
 
 def logout():
-    """Limpa sessão e desloga."""
-    # REMOVIDO: supabase.auth.sign_out() 
-    # O cliente Supabase é global. Fazer sign_out aqui deslogava
-    # o token no servidor, podendo interferir nas queries de outros usuários.
-    st.session_state.logged_in = False
-    st.session_state.user_data = None
+    """Encerra somente a sessão atual e limpa todo estado local do usuário."""
+    try:
+        client = st.session_state.get("_supabase_client")
+        if client is not None:
+            client.auth.sign_out({"scope": "local"})
+    except Exception:
+        # Mesmo se o revoke remoto falhar, não mantemos sessão/local state no app.
+        pass
+    finally:
+        _clear_user_session()
     st.rerun()
 
 
@@ -61,7 +97,6 @@ def render_forgot_password_dialog():
 def show_login_page() -> None:
     """
     Tela de Login — visual limpo e estável.
-    Credenciais temporárias: admin / 123
     """
     bg_base64   = get_image_as_base64("assets/fundo_perfor.jpg")
     logo_base64 = get_image_as_base64("assets/logo_perfor.png")
