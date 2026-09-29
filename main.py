@@ -17,6 +17,7 @@ from core.context import (
     get_user_squad,
     navigate_to_project,
     navigate_to_agency,
+    navigate_to_portfolio,
     set_page,
     is_ceo,
     render_cargo_badge,
@@ -408,6 +409,9 @@ def _render_sidebar_agency():
         st.rerun()
 
     # ── SQUADS / CLIENTES ─────────────────────────────────────────────────
+    if st.button(":material/space_dashboard: Cockpit da Carteira", key="nav_cockpit", use_container_width=True):
+        navigate_to_portfolio()
+
     squads = get_squads()
     if squads:
         st.markdown('<p class="sidebar-section-label">SQUADS</p>', unsafe_allow_html=True)
@@ -506,6 +510,9 @@ def _render_sidebar_project():
     """, unsafe_allow_html=True)
 
     # ── HOME INICIAL ──────────────────────────────────────────────────────
+    if st.button(":material/space_dashboard: Cockpit da Carteira", key="nav_cockpit_project", use_container_width=True):
+        navigate_to_portfolio()
+
     if st.button(":material/home: Visão Geral", key="nav_visao_geral_proj", use_container_width=True):
         set_page("Visão Geral")
         st.rerun()
@@ -603,7 +610,11 @@ with st.sidebar:
 
 if nivel == "agencia":
     # ── Páginas do nível agência ──────────────────────────────────────────
-    if pagina_ativa == "Visão Geral":
+    if pagina_ativa == "Cockpit da Carteira":
+        from modules.portfolio import render_portfolio
+        render_portfolio()
+
+    elif pagina_ativa == "Visão Geral":
         from modules.overview import render_visao_geral
         render_visao_geral()
 
