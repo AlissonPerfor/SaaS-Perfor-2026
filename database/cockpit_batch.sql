@@ -25,4 +25,3 @@ $$;
 revoke all on function public.cockpit_save_batch(date,jsonb) from public,anon;
 grant execute on function public.cockpit_save_batch(date,jsonb) to authenticated;
 notify pgrst,'reload schema';
-

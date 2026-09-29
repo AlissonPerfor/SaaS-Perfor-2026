@@ -154,4 +154,3 @@ revoke all on function public.cockpit_read_month(date),public.cockpit_save_month
 grant execute on function public.cockpit_read_month(date),public.cockpit_save_month(bigint,date,jsonb,integer),
   public.cockpit_history(bigint,date) to authenticated;
 notify pgrst,'reload schema';
-
