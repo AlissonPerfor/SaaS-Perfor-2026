@@ -1,5 +1,5 @@
 import streamlit as st
-from supabase import create_client
+from supabase import ClientOptions, create_client
 
 
 # ── Conexão com Supabase (isolada por sessão do Streamlit) ──────────────────
@@ -16,7 +16,10 @@ def get_supabase():
     if "_supabase_client" not in st.session_state:
         url = st.secrets["supabase"]["url"]
         key = st.secrets["supabase"]["key"]
-        st.session_state["_supabase_client"] = create_client(url, key)
+        # Renova em get_session, no rerun, sem timer retendo sessões desconectadas.
+        st.session_state["_supabase_client"] = create_client(
+            url, key, options=ClientOptions(auto_refresh_token=False)
+        )
     return st.session_state["_supabase_client"]
 
 
@@ -33,11 +36,15 @@ def verify_user(email_input: str, senha_input: str):
     Retorna os dados do usuário (dict) em caso de sucesso, ou None se falhar.
     """
     try:
+        # Uma tentativa nova nunca herda tokens ou projetos do usuário anterior.
+        clear_supabase_client()
+        st.session_state.clear()
         supabase = get_supabase()
         response = supabase.auth.sign_in_with_password({"email": email_input, "password": senha_input})
         user = response.user
-        if user:
-            nome = user.user_metadata.get("full_name") or user.user_metadata.get("name") or email_input.split("@")[0]
+        if user and response.session and str(response.session.user.id) == str(user.id):
+            metadata = user.user_metadata or {}
+            nome = metadata.get("full_name") or metadata.get("name") or email_input.split("@")[0]
             
             # Reutiliza a função centralizada de perfil — buscando por email
             perfil = get_user_profile(user.email)
@@ -49,10 +56,12 @@ def verify_user(email_input: str, senha_input: str):
                 "cargo": perfil["cargo"],   # ex: 'ceo', 'head', 'analista'
                 "squad": perfil["squad"]    # ex: 'Cold Hunters', 'Rise Gold', None
             }
-        return None
-    except Exception as e:
+    except Exception:
         # Em caso de erro (senha errada, não existe, etc), o Supabase lança uma exceção.
-        return None
+        pass
+    clear_supabase_client()
+    st.session_state.clear()
+    return None
 
 def reset_password(email_input: str) -> bool:
     """Envia e-mail de recuperação de senha via Supabase Auth."""

@@ -21,6 +21,7 @@ def get_image_as_base64(file_path: str) -> str:
 
 def _clear_user_session() -> None:
     """Remove todo estado local associado ao usuário atual."""
+    clear_supabase_client()
     st.session_state.clear()
 
 
@@ -32,10 +33,15 @@ def check_login() -> bool:
     a sessão do Auth com segurança sem risco de reutilizar a sessão de outro usuário.
     """
     if not st.session_state.get("logged_in") or not st.session_state.get("user_data"):
+        # Não apaga widgets do formulário em cada rerun de um visitante anônimo.
+        if st.session_state.get("logged_in") or st.session_state.get("user_data") or "_supabase_client" in st.session_state:
+            _clear_user_session()
         return False
 
     try:
-        auth_session = get_supabase().auth.get_session()
+        client = get_supabase()
+        # get_session renova tokens expirados; get_user valida o JWT no servidor.
+        auth_session = client.auth.get_session()
         if not auth_session or not getattr(auth_session, "user", None):
             _clear_user_session()
             return False
@@ -44,6 +50,11 @@ def check_login() -> bool:
         current_user_id = getattr(auth_session.user, "id", None)
 
         if not expected_user_id or str(current_user_id) != str(expected_user_id):
+            _clear_user_session()
+            return False
+
+        verified = client.auth.get_user(auth_session.access_token)
+        if not verified or not verified.user or str(verified.user.id) != str(expected_user_id):
             _clear_user_session()
             return False
 
@@ -56,13 +67,14 @@ def check_login() -> bool:
 def logout():
     """Encerra somente a sessão atual e limpa todo estado local do usuário."""
     try:
-        get_supabase().auth.sign_out()
+        client = st.session_state.get("_supabase_client")
+        if client is not None:
+            client.auth.sign_out({"scope": "local"})
     except Exception:
         # Mesmo se o revoke remoto falhar, não mantemos sessão/local state no app.
         pass
     finally:
         _clear_user_session()
-        clear_supabase_client()
     st.rerun()
 
 
@@ -85,7 +97,6 @@ def render_forgot_password_dialog():
 def show_login_page() -> None:
     """
     Tela de Login — visual limpo e estável.
-    Credenciais temporárias: admin / 123
     """
     bg_base64   = get_image_as_base64("assets/fundo_perfor.jpg")
     logo_base64 = get_image_as_base64("assets/logo_perfor.png")
